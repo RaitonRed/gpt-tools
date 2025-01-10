@@ -1,135 +1,16 @@
 import gradio as gr
-from model import load_model
-from generate import generate_text
-from generate import generate_code
-from database import create_db, insert_into_db, clear_database
-import train
+from database import create_db
+from functions import *
+from functions import _generate_code
 
-# Supported models_general
-models_options_general = ["gpt2", "gpt2-medium", "gpt2-persian", "gpt2-large"]
+# Supported models
+models_options_general = ['gpt2', 'gpt2-medium', 'gpt2-large', 'gpt2-persian']
 models_options_codegen = ['codegen']
-
-train_pass = '68187451'
-
-# Load models_general
-models_general = {model_name: {"model": load_model(model_name)[0], "tokenizer": load_model(model_name)[1]} for model_name in models_options_general}
-models_codegen = {"codegen": {"model": load_model("codegen")[0], "tokenizer": load_model("codegen")[1]}}
-
-# AI-Powered Story World Builder Functions
-world_data = {}
-
-def define_world(world_name, locations, characters):
-    """
-    Define a new story world with locations and characters.
-    """
-    world_data["world_name"] = world_name
-    world_data["locations"] = locations.split(", ")
-    world_data["characters"] = characters.split(", ")
-    return f"World '{world_name}' created with locations: {locations} and characters: {characters}"
-
-def generate_story(world_name, event, max_length):
-    """
-    Generate a story based on the defined world and an event.
-    """
-    if not world_name or not world_data.get("world_name"):
-        return "Error: Please define a world first."
-
-    if world_name != world_data["world_name"]:
-        return f"Error: World '{world_name}' not found. Define it first."
-
-    prompt = f"In the world of {world_name}, {event}. Locations: {', '.join(world_data['locations'])}. Characters: {', '.join(world_data['characters'])}."
-    generated_story = generate_text(models_general, "gpt2", prompt, max_length)
-    return generated_story
-
-
-# Story Mode
-story = []
-
-# Main Function For Story Generating
-def interactive_story(input_text, selected_model, max_length):
-    global story
-    if input_text.strip():
-        story.append(input_text)  # افزودن ورودی کاربر به داستان
-    current_text = " ".join(story)  # ساخت داستان تجمعی
-    
-    generated_text = generate_text(models_general, selected_model, current_text, max_length)
-    story.append(generated_text)  # افزودن متن تولید شده توسط مدل
-    
-    return current_text + "\n\n" + generated_text
-
-def reset_story():
-    global story
-    story = []  # بازنشانی داستان
-    return ""
-
-# Function to generate multiple parallel worlds from a single input
-def generate_multiverse(input_text, selected_model, max_new_tokens, num_worlds=3):
-    worlds = []
-    for i in range(num_worlds):
-        world_intro = f"World {i + 1}: "
-        
-        # Custom logic for different parallel worlds
-        if i == 0:
-            world_intro += f"{input_text} This world leads to a parallel universe!"
-        elif i == 1:
-            world_intro += f"{input_text} In this world, time splits into different periods!"
-        elif i == 2:
-            world_intro += f"{input_text} This world faces a strange physical anomaly that changes everything!"
-        
-        # Generate the continuation of the story
-        generated_text = generate_text(
-            models_general, 
-            selected_model, 
-            world_intro, 
-            max_new_tokens, 
-            #repetition_penalty=1.2  # Avoid repetition
-        )
-        worlds.append(generated_text)
-    
-    return "\n\n".join(worlds)
-
-# Main function for generating text
-def generate(input_text, selected_model, max_new_token):
-    insert_into_db(input_text, selected_model)
-    return generate_text(models_general, selected_model, input_text, max_new_token)
-
-# Function to verify password, train the model, and clear the database
-def verify_and_train_combined(selected_model, train_method, epochs, batch_size, password, custom_text, dataset_file, dataset_name, split_name):
-    if password != train_pass:
-        return "Error: Incorrect password. Training not started."
-
-    if train_method == "Custom Text" and custom_text.strip():
-        train.train_model_with_text(selected_model, custom_text, epochs, batch_size)
-        return f"Training completed for model: {selected_model} using custom text."
-
-    elif train_method == "Database":
-        train.train_model_with_database(selected_model, epochs, batch_size)
-        clear_database()
-        return f"Training completed for model: {selected_model} using database. Database cleared."
-
-    elif train_method == "Dataset File" and dataset_file is not None:
-        try:
-            dataset_path = dataset_file.name
-            train.train_model_with_dataset(selected_model, epochs, batch_size, dataset_path)
-            return f"Training completed for model: {selected_model} using uploaded dataset."
-        except Exception as e:
-            return f"Error during training with dataset: {str(e)}"
-
-    elif train_method == "Hugging Face Dataset" and dataset_name.strip():
-        try:
-            train.train_model_with_hf_dataset(selected_model, epochs, batch_size, dataset_name, split=split_name.strip())
-            return f"Training completed for model: {selected_model} using Hugging Face dataset {dataset_name}."
-        except Exception as e:
-            return f"Error during training with Hugging Face dataset: {str(e)}"
-
-    else:
-        return "Error: Invalid input for training. Please check your selections."
-
 
 # Create database
 create_db()
 
-# Interface
+# Interface setup
 with gr.Blocks() as interface:
     gr.Markdown(
         "# **GPT Tools**\n\n"
@@ -153,7 +34,7 @@ with gr.Blocks() as interface:
                 outputs=output_text,
             )
 
-        # Multiverse Story Generator Tab
+
         with gr.Tab("Multiverse Story Generator"):
             with gr.Row():
                 with gr.Column(scale=1, min_width=350):
@@ -171,7 +52,6 @@ with gr.Blocks() as interface:
                 outputs=output_text,
             )
 
-        # Interactive Story Writing Tab
         with gr.Tab("Interactive Story Writing"):
             with gr.Row():
                 with gr.Column(scale=1, min_width=350):
@@ -183,14 +63,9 @@ with gr.Blocks() as interface:
                     story_button = gr.Button("Generate Next Part", variant="primary")
                     reset_button = gr.Button("Reset Story", variant="secondary")
 
-            # Connecting buttons to respective functions
             story_button.click(
                 interactive_story,
-                inputs=[
-                    story_input,
-                    story_model,
-                    story_max_length
-                ],
+                inputs=[story_input, story_model, story_max_length],
                 outputs=story_text,
             )
             reset_button.click(
@@ -199,7 +74,6 @@ with gr.Blocks() as interface:
                 outputs=story_text,
             )
 
-        # Training Tab
         with gr.Tab("Training"):
             gr.Markdown("# **Train Model**\n\n")
             with gr.Column(scale=1, min_width=250):
@@ -210,22 +84,27 @@ with gr.Blocks() as interface:
                     label="Training Method",
                     type="value"
                 )
-            dataset_name = gr.Textbox(label="Hugging Face Dataset Name", placeholder="Enter dataset name (e.g., ag_news)")
-            split_name = gr.Textbox(label="Dataset Split", placeholder="e.g., train, test, validation")
-            epochs = gr.Slider(1, 100, value=10, step=1, label="Epochs", interactive=True)
-            batch_size = gr.Slider(1, 100, value=8, step=1, label="Batch Size", interactive=True)
-            password = gr.Textbox(label="Enter Training Password", placeholder="Enter password", type="password")
-            custom_text = gr.Textbox(label="Custom Text (optional)", placeholder="Enter custom text for training...")
-            dataset_file = gr.File(label="Upload Dataset", type="filepath", file_types=[".parquet", ".csv", ".json", ".txt"])
-            train_button = gr.Button("Train Model", variant="primary")
-            train_status = gr.Textbox(label="Training Status", interactive=False)
+                dataset_name = gr.Textbox(label="Hugging Face Dataset Name", placeholder="Enter dataset name (e.g., ag_news)")
+                split_name = gr.Textbox(label="Dataset Split", placeholder="e.g., train, test, validation")
+                epochs = gr.Slider(1, 100, value=10, step=1, label="Epochs", interactive=True)
+                batch_size = gr.Slider(1, 100, value=8, step=1, label="Batch Size", interactive=True)
+                password = gr.Textbox(label="Enter Training Password", placeholder="Enter password", type="password")
+                custom_text = gr.Textbox(label="Custom Text (optional)", placeholder="Enter custom text for training...")
+                dataset_file = gr.File(label="Upload Dataset", type="filepath", file_types=[".parquet", ".csv", ".json", ".txt"])
+                train_button = gr.Button("Train Model", variant="primary")
+                train_status = gr.Textbox(label="Training Status", interactive=False)
+            
             train_button.click(
                 verify_and_train_combined,
                 inputs=[train_model_selector, train_method, epochs, batch_size, password, custom_text, dataset_file, dataset_name, split_name],
                 outputs=train_status,
             )
-       
-        # Code Generator Tab
+            train_button.click(
+                verify_and_train_combined,
+                inputs=[train_model_selector, train_method, epochs, batch_size, password, custom_text, dataset_file, dataset_name, split_name],
+                outputs=train_status,
+            )
+
         with gr.Tab("Code Generator"):
             gr.Markdown("### Generate Code from Descriptions")
             with gr.Row():
@@ -236,13 +115,14 @@ with gr.Blocks() as interface:
                     generated_code = gr.Textbox(label="Generated Code", interactive=False, lines=10, max_lines=20)
                     generate_code_button = gr.Button("Generate Code")
 
-        generate_code_button.click(
-            lambda prompt, max_new_tokens: generate_code(models_codegen, "codegen", prompt, max_new_tokens),
-            inputs=[code_prompt, code_max_tokens],
-            outputs=generated_code,
-        )
+            generate_code_button.click(
+                _generate_code,
+                inputs=[code_prompt, code_max_tokens],
+                outputs=generated_code,
+            )
+
         # Add AI-Powered Story World Builder Tab
-        with gr.Tab("AI-Powered Story World Builder"):
+        with gr.Tab("Story World Builder"):
             with gr.Row():
                 with gr.Column(scale=1, min_width=350):
                     world_name = gr.Textbox(label="World Name", placeholder="Enter your world name...")
@@ -266,22 +146,20 @@ with gr.Blocks() as interface:
                 with gr.Column(scale=1, min_width=350):
                     story_world = gr.Textbox(label="Enter World Name", placeholder="World name...")
                     event = gr.Textbox(label="Event", placeholder="Describe an event in the world...")
+                    selected_model = gr.Radio(choices=models_options_general, value="gpt2", label="Select Model", type="value")
                     max_length = gr.Slider(50, 300, value=150, step=1, label="Max Length")
-
     generate_story_button.click(
         generate_story,
-        inputs=[story_world, event, max_length],
+        inputs=[selected_model, story_world, max_length, event],
         outputs=generated_story,
     )
 
-    gr.Markdown(
-        "___\n"
-        "Made by **AliMc2021** with ❤️"
-    )
+    gr.Markdown("Made by **AliDev2020** with ❤️")
 
 # Launch the interface
 interface.queue().launch(
     server_port=7860, 
     show_error=True, 
     inline=False,
+    #share=True,
 )
