@@ -7,7 +7,10 @@ MODEL_LIST = {
     "gpt2-medium": {"path": "openai-community/gpt2-medium", "save_dir": "./models/gpt2-medium"},
     "gpt2-persian": {"path": "flax-community/gpt2-medium-persian", "save_dir": "./models/gpt2-medium-persian"},
     "gpt2-large": {"path": "openai-community/gpt2-large", "save_dir": "./models/gpt2-large"},
-    "codegen": {"path": "Salesforce/codegen-350M-mono", "save_dir": "./models/codegen"}
+    "codegen": {"path": "Salesforce/codegen-350M-mono", "save_dir": "./models/codegen"},
+    "dialogpt": {"path": "microsoft/DialoGPT-small", "save_dir": "./models/dialogpt"},
+    "dialogpt-medium": {"path": "microsoft/DialoGPT-medium", "save_dir": "./models/dialogpt-medium"},
+    "dialogpt-large": {"path": "microsoft/DialoGPT-large", "save_dir": "./models/dialogpt-large"}
 }
 
 def download_and_save_models():
