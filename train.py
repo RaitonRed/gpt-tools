@@ -1,7 +1,7 @@
 import torch
 from torch.utils.data import Dataset, DataLoader
 from transformers import AdamW
-from model import load_model
+from model import load_model_lazy, unload_model
 from database import fetch_all_inputs, clear_database  # مدیریت دیتابیس
 from datasets import load_dataset
 
@@ -30,17 +30,18 @@ def train_model_with_text(selected_model, custom_text, epochs, batch_size):
     """
     آموزش مدل با متن سفارشی.
     """
-    model, tokenizer = load_model(selected_model)
+    model, tokenizer = load_model_lazy(selected_model)
     dataset = TextDataset([custom_text], tokenizer)
     dataloader = DataLoader(dataset, batch_size=min(batch_size, len(dataset)), shuffle=True)
 
     _train_model(model, tokenizer, dataloader, epochs, selected_model, "custom_text")
+    unload_model(selected_model)
 
 def train_model_with_database(selected_model, epochs, batch_size):
     """
     آموزش مدل با داده‌های موجود در دیتابیس.
     """
-    model, tokenizer = load_model(selected_model)
+    model, tokenizer = load_model_lazy(selected_model)
     inputs_data = fetch_all_inputs()
     texts = [input_text for input_text, model_name in inputs_data if model_name == selected_model]
 
@@ -53,12 +54,13 @@ def train_model_with_database(selected_model, epochs, batch_size):
 
     _train_model(model, tokenizer, dataloader, epochs, selected_model, "database")
     clear_database()
+    unload_model(selected_model)
 
 def train_model_with_dataset(selected_model, epochs, batch_size, dataset_path):
     """
     آموزش مدل با فایل دیتاست آپلود‌شده.
     """
-    model, tokenizer = load_model(selected_model)
+    model, tokenizer = load_model_lazy(selected_model)
 
     # خواندن دیتاست
     with open(dataset_path, "r", encoding="utf-8") as f:
@@ -72,6 +74,7 @@ def train_model_with_dataset(selected_model, epochs, batch_size, dataset_path):
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
     _train_model(model, tokenizer, dataloader, epochs, selected_model, "dataset")
+    unload_model(selected_model)
 
 def _train_model(model, tokenizer, dataloader, epochs, model_name, method):
     """
@@ -117,7 +120,7 @@ def train_model_with_hf_dataset(selected_model, epochs, batch_size, dataset_name
         dataset_name (str): نام دیتاست در Hugging Face.
         split (str): بخش دیتاست برای بارگذاری (train, test, validation).
     """
-    model, tokenizer = load_model(selected_model)
+    model, tokenizer = load_model_lazy(selected_model)
 
     # بارگذاری داده‌ها از Hugging Face
     texts = load_dataset(dataset_name, split)
@@ -130,3 +133,4 @@ def train_model_with_hf_dataset(selected_model, epochs, batch_size, dataset_name
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
     _train_model(model, tokenizer, dataloader, epochs, selected_model, f"huggingface_{dataset_name}")
+    unload_model(selected_model)
