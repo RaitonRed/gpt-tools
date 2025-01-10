@@ -2,7 +2,6 @@ import sqlite3
 
 database_path = 'database.db'
 
-
 def create_db():
     conn = sqlite3.connect(database_path)
     c = conn.cursor()
