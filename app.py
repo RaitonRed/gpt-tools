@@ -4,8 +4,9 @@ from functions import *
 from functions import _generate_code
 
 # Supported models
-models_options_general = ['gpt2', 'gpt2-medium', 'gpt2-large', 'gpt2-persian']
+models_options_general = ['GPT2', 'GPT2-medium', 'GPT2-large', 'GPT2-persian', 'GPT-Neo-125M']
 models_options_codegen = ['codegen']
+models_options_chatbot = ['dialoGPT', 'dialoGPT-medium', 'dialoGPT-large']
 
 # Create database
 create_db()
@@ -21,7 +22,7 @@ with gr.Blocks() as interface:
             with gr.Row():
                 with gr.Column(scale=1, min_width=350):
                     input_text = gr.Textbox(label="Input Text", placeholder="Enter your text here...", lines=4, max_lines=6)
-                    selected_model = gr.Radio(choices=models_options_general, value="gpt2", label="Select Model", type="value")
+                    selected_model = gr.Radio(choices=models_options_general, value="GPT2", label="Select Model", type="value")
                     with gr.Row():
                         max_tokens = gr.Slider(10, 100, value=50, step=1, label="Max New Tokens", interactive=True)
                 with gr.Column(scale=1, min_width=350):
@@ -39,7 +40,7 @@ with gr.Blocks() as interface:
             with gr.Row():
                 with gr.Column(scale=1, min_width=350):
                     input_text = gr.Textbox(label="Enter your story idea", placeholder="e.g. A scientist discovers a parallel universe...", lines=4, max_lines=6)
-                    selected_model = gr.Radio(choices=models_options_general, value="gpt2", label="Select Model for Story Generation", type="value")
+                    selected_model = gr.Radio(choices=models_options_general, value="GPT2", label="Select Model for Story Generation", type="value")
                     max_length = gr.Slider(50, 300, value=150, step=1, label="Max Length", interactive=True)
 
                 with gr.Column(scale=1, min_width=350):
@@ -56,7 +57,7 @@ with gr.Blocks() as interface:
             with gr.Row():
                 with gr.Column(scale=1, min_width=350):
                     story_input = gr.Textbox(label="Add to Story", placeholder="Enter your part of the story...", lines=4, max_lines=6)
-                    story_model = gr.Radio(choices=models_options_general, value="gpt2", label="Select Model", type="value")
+                    story_model = gr.Radio(choices=models_options_general, value="GPT2", label="Select Model", type="value")
                     story_max_length = gr.Slider(50, 300, value=50, step=1, label="Max Length", interactive=True)
                 with gr.Column(scale=1, min_width=350):
                     story_text = gr.Textbox(label="Story So Far", interactive=False, lines=12, max_lines=20)
@@ -77,7 +78,7 @@ with gr.Blocks() as interface:
         with gr.Tab("Training"):
             gr.Markdown("# **Train Model**\n\n")
             with gr.Column(scale=1, min_width=250):
-                train_model_selector = gr.Radio(choices=models_options_general, value="gpt2", label="Select Model for Training", type="value")
+                train_model_selector = gr.Radio(choices=models_options_general, value="GPT2", label="Select Model for Training", type="value")
                 train_method = gr.Radio(
                     choices=["Custom Text", "Database", "Dataset File", "Hugging Face Dataset"],
                     value="Custom Text",
@@ -140,14 +141,54 @@ with gr.Blocks() as interface:
                 inputs=[world_name, locations, characters],
                 outputs=world_status,
             )
-
+            
             gr.Markdown("### Generate a Story in Your World")
             with gr.Row():
                 with gr.Column(scale=1, min_width=350):
                     story_world = gr.Textbox(label="Enter World Name", placeholder="World name...")
                     event = gr.Textbox(label="Event", placeholder="Describe an event in the world...")
-                    selected_model = gr.Radio(choices=models_options_general, value="gpt2", label="Select Model", type="value")
+                    selected_model = gr.Radio(choices=models_options_general, value="GPT2", label="Select Model", type="value")
                     max_length = gr.Slider(50, 300, value=150, step=1, label="Max Length")
+
+        with gr.Tab("Chatbot"):
+            gr.Markdown("### **Chat With AI Models**")
+            with gr.Row():
+                with gr.Column(scale=1, min_width=250):
+                    username = gr.Textbox(label="Username", placeholder="Enter your username", lines=1)
+                    chat_id = gr.Textbox(label="Chat ID (optional)", placeholder="Enter chat ID or leave blank for a new chat", lines=1)
+                    selected_model = gr.Radio(models_options_chatbot, label="Select Model", value="dialoGPT")
+                    send_button = gr.Button("Send", variant="primary")
+                    reset_button = gr.Button("Reset Chat", variant="secondary")
+                with gr.Column(scale=1, min_width=250):
+                    input_text = gr.Textbox(label="Your Message", placeholder="Type your message here...", lines=2)
+                    emotion_output = gr.Textbox(label="Detected Emotion", interactive=False)
+                    chat_output = gr.Textbox(label="Chat History", lines=10, interactive=False)
+
+            send_button.click(
+                chatbot_response_with_emotion,
+                inputs=[username, input_text, selected_model, chat_id],
+                outputs=[chat_output, chat_id, emotion_output]
+            )
+
+            reset_button.click(
+                reset_chat,
+                inputs=[username],
+                outputs=[chat_output]
+            )
+            gr.Markdown("---")
+            gr.Markdown("### **Fetch Chat IDs**")
+            with gr.Row():
+                with gr.Column(scale=1, min_width=250):
+                    username = gr.Textbox(label="Username", placeholder="Enter your username", lines=1)
+                    fetch_btn = gr.Button("Fetch", variant="primary")
+                with gr.Column(scale=1, min_width=250):
+                    fetch_output = gr.Textbox(label="Chat IDs", lines=3, interactive=False)
+            fetch_btn.click(
+                chat_ids,
+                inputs=[username],
+                outputs=[fetch_output],
+            )
+    
     generate_story_button.click(
         generate_story,
         inputs=[selected_model, story_world, max_length, event],

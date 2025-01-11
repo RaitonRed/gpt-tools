@@ -1,7 +1,9 @@
+import torch
 from model import load_model_lazy, unload_model
 from generate import generate_code, generate_text
 from database import *
 import train
+import uuid
 
 train_pass = '6818'
 
@@ -23,7 +25,7 @@ def _generate_code(code_prompt, max_tokens, selected_model='codegen'):
 
     return generated_code
 
-def generate(input_text, selected_model, max_new_token, seed=None):
+def generate(input_text, selected_model, max_new_token):
     """
     Generate text based on the selected model and input text.
     """
@@ -31,14 +33,13 @@ def generate(input_text, selected_model, max_new_token, seed=None):
     model_data = load_model_lazy(selected_model)
 
     # Generate text
-    generated_text = generate_text(model_data, input_text, max_new_token, seed)
+    generated_text = generate_text(model_data, input_text, max_new_token)
     insert_into_db(input_text, selected_model)
 
     # Unload the model after use
     unload_model(selected_model)
 
     return generated_text
-
 
 def define_world(world_name, locations, characters):
     """
@@ -86,7 +87,7 @@ def reset_story():
     story = []  # Reset story
     return ""
 
-def generate_multiverse(input_text, selected_model, max_new_tokens, num_worlds=3, seed=None):
+def generate_multiverse(input_text, selected_model, max_new_tokens, num_worlds=3):
     """
     Generate multiple parallel worlds from a single input text.
     """
@@ -103,7 +104,7 @@ def generate_multiverse(input_text, selected_model, max_new_tokens, num_worlds=3
             world_intro += f"{input_text} This world faces a strange physical anomaly that changes everything!"
 
         # Generate the story for this world
-        generated_text = generate(world_intro, selected_model, max_new_tokens, seed)
+        generated_text = generate(world_intro, selected_model, max_new_tokens)
 
         worlds.append(generated_text)
 
@@ -142,3 +143,128 @@ def verify_and_train_combined(selected_model, train_method, epochs, batch_size, 
 
     else:
         return "Error: Invalid input for training. Please check your selections."
+
+def limit_chat_history(chat_history, max_turns=3):
+    """
+    محدود کردن تعداد پیام‌های تاریخچه به max_turns.
+    """
+    turns = chat_history.split("\n")
+    if len(turns) > max_turns * 2:  # هر سوال و پاسخ دو خط می‌شود
+        turns = turns[-max_turns * 2:]  # فقط n پیام اخیر را نگه می‌دارد
+    return "\n".join(turns)
+
+def chatbot_response(username, input_text, selected_model, chat_id=None):
+    if not username.strip():
+        return "Error: Please enter a username.", "", str(uuid.uuid4())  # تولید شناسه جدید
+
+    # اگر شناسه چت وارد نشده باشد، یک شناسه جدید تولید می‌شود
+    if not chat_id or chat_id.strip() == "":
+        chat_id = str(uuid.uuid4())  # تولید شناسه جدید
+
+    # Load model lazily
+    model_data = load_model_lazy(selected_model)
+
+    # Retrieve previous chats from database
+    previous_chats = fetch_chats_by_id(chat_id)
+    chat_history = "\n".join([f"User: {msg}\nAI: {resp}" for msg, resp in previous_chats])
+
+    # محدود کردن تاریخچه چت
+    if chat_history:
+        chat_history = limit_chat_history(chat_history, max_turns=3)
+        prompt = f"{chat_history}\nUser: {input_text}\nAI:"
+    else:
+        prompt = f"User: {input_text}\nAI:"
+
+    # Generate response
+    max_new_token = 150  # تعداد توکن‌های جدید
+    full_response = generate_text(model_data, prompt, max_new_token)  # حذف آرگومان‌های اضافی
+
+    # Extract only the new AI response
+    ai_response = full_response.split("AI:")[-1].strip()
+
+    unload_model(selected_model)
+
+    # Save chat to database
+    insert_chat(chat_id, username, input_text, ai_response)
+
+    # Return updated chat history and chat_id
+    updated_history = chat_history + f"\nUser: {input_text}\nAI: {ai_response}"
+    return updated_history, chat_id
+
+def chat_ids(username):
+    return fetch_ids_by_user(username)
+
+def reset_chat(username):
+    clear_chats_by_username(username)  # حذف چت‌های مرتبط با کاربر
+    return f"Chat history cleared for user: {username}", ""
+
+# توابع تحلیل احساسات
+def analyze_emotion(user_input):
+    # بارگذاری مدل احساسات
+    model_data = load_model_lazy("bert-emotion")
+    
+    # اگر مدل از pipeline پشتیبانی می‌کند
+    if "pipeline" in model_data:
+        emotion_pipeline = model_data["pipeline"]
+        result = emotion_pipeline(user_input)
+        emotion = result[0]['label']
+        confidence = result[0]['score']
+    else:
+        # روش قدیمی برای مدل‌هایی که از pipeline پشتیبانی نمی‌کنند
+        emotion_tokenizer = model_data['tokenizer']
+        emotion_model = model_data['model']
+        inputs = emotion_tokenizer(user_input, return_tensors="pt", truncation=True, padding=True)
+        outputs = emotion_model(**inputs)
+        probs = torch.nn.functional.softmax(outputs.logits, dim=-1)
+        emotion = probs.argmax().item()
+        confidence = probs.max().item()
+    
+    unload_model("bert-emotion")
+    return emotion, confidence
+
+def emotion_label(index):
+    emotions = ["anger", "joy", "sadness", "fear", "love", "surprise"]
+    return emotions[index]
+
+def chatbot_response_with_emotion(username, input_text, selected_model, chat_id=None):
+    if not username.strip():
+        return "Error: Please enter a username.", "", str(uuid.uuid4())
+
+    if not chat_id or chat_id.strip() == "":
+        chat_id = str(uuid.uuid4())
+
+    # بارگذاری مدل چت و احساسات
+    model_data = load_model_lazy(selected_model)
+
+    # تحلیل احساسات پیام کاربر
+    emotion, confidence = analyze_emotion(input_text)
+    user_emotion = emotion  # برچسب احساسات
+
+    # بازیابی چت‌های قبلی از پایگاه داده
+    previous_chats = fetch_chats_by_id(chat_id)
+    chat_history = "\n".join([f"User: {msg}\nAI: {resp}" for msg, resp in previous_chats])
+
+    # محدود کردن تاریخچه چت
+    if chat_history:
+        chat_history = limit_chat_history(chat_history, max_turns=3)
+        prompt = f"[Emotion: {user_emotion}]\n{chat_history}\nUser: {input_text}\nAI:"
+    else:
+        prompt = f"[Emotion: {user_emotion}]\nUser: {input_text}\nAI:"
+
+    # تولید پاسخ
+    max_new_token = 150
+    full_response = generate_text(model_data, prompt, max_new_token)
+
+    # استخراج پاسخ AI
+    ai_response = full_response.split("AI:")[-1].strip()
+
+    # آزادسازی مدل‌ها
+    unload_model(selected_model)
+    unload_model("bert-emotion")
+
+    # ذخیره چت در پایگاه داده
+    insert_chat(chat_id, username, input_text, ai_response)
+
+    # بازگرداندن تاریخچه به‌روز شده و شناسه چت
+    updated_history = chat_history + f"\nUser: {input_text}\nAI: {ai_response}"
+    return updated_history, chat_id, user_emotion

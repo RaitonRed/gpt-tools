@@ -9,7 +9,12 @@ def generate_text(model_data, input_text, max_new_token):
     if "pipeline" in model_data:
         # اگر مدل از pipeline پشتیبانی می‌کند
         model_pipeline = model_data["pipeline"]
-        generated_text = model_pipeline(input_text, max_length=max_new_token, do_sample=True)[0]["generated_text"]
+        generated_text = model_pipeline(
+            input_text,
+            max_length=max_new_token,
+            do_sample=False,  # غیرفعال کردن نمونه‌گیری (حالت حریصانه)
+            truncation=True  # فعال کردن truncation
+        )[0]["generated_text"]
         return generated_text
     else:
         # روش قدیمی برای مدل‌هایی که از pipeline پشتیبانی نمی‌کنند
@@ -22,7 +27,13 @@ def generate_text(model_data, input_text, max_new_token):
         torch.manual_seed(seed)
         torch.cuda.manual_seed_all(seed)
 
-        encodings = tokenizer(input_text, return_tensors="pt", padding=True, truncation=True, max_length=512)
+        encodings = tokenizer(
+            input_text,
+            return_tensors="pt",
+            padding=True,
+            truncation=True,  # فعال کردن truncation
+            max_length=512
+        )
         input_ids = encodings.input_ids
         attention_mask = encodings.attention_mask
 
@@ -30,7 +41,7 @@ def generate_text(model_data, input_text, max_new_token):
             input_ids=input_ids,
             attention_mask=attention_mask,
             max_new_tokens=max_new_token,
-            do_sample=False,
+            do_sample=False,  # غیرفعال کردن نمونه‌گیری (حالت حریصانه)
             pad_token_id=tokenizer.eos_token_id,
             repetition_penalty=1.2,
             no_repeat_ngram_size=3,
