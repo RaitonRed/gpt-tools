@@ -4,15 +4,15 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, GPT2LMHeadModel, G
 
 # Dictionary of models and paths
 model_dict = {
-    "gpt2": {"path": "./models/gpt2", "library": GPT2LMHeadModel, "tokenizer": GPT2Tokenizer, "use_pipeline": False},
-    "gpt2-medium": {"path": "./models/gpt2-medium", "library": GPT2LMHeadModel, "tokenizer": GPT2Tokenizer, "use_pipeline": False},
-    "gpt2-large": {"path": "./models/gpt2-large", "library": AutoModelForCausalLM, "tokenizer": AutoTokenizer, "use_pipeline": False},
-    "gpt2-persian": {"path": "./models/gpt2-medium-persian", "library": GPT2LMHeadModel, "tokenizer": AutoTokenizer, "use_pipeline": False},
+    "GPT2": {"path": "./models/gpt2", "library": GPT2LMHeadModel, "tokenizer": GPT2Tokenizer, "use_pipeline": False},
+    "GPT2-medium": {"path": "./models/gpt2-medium", "library": GPT2LMHeadModel, "tokenizer": GPT2Tokenizer, "use_pipeline": False},
+    "GPT2-large": {"path": "./models/gpt2-large", "library": AutoModelForCausalLM, "tokenizer": AutoTokenizer, "use_pipeline": False},
+    "GPT2-persian": {"path": "./models/gpt2-medium-persian", "library": GPT2LMHeadModel, "tokenizer": AutoTokenizer, "use_pipeline": False},
     "codegen": {"path": "./models/codegen", "library": AutoModelForCausalLM, "tokenizer": AutoTokenizer, "use_pipeline": False},
-    "dialogpt": {"path": "./models/dialogpt", "library": AutoModelForCausalLM, "tokenizer": AutoTokenizer, "use_pipeline": False},
-    "dialogpt-medium": {"path": "./models/dialogpt-medium", "library": AutoModelForCausalLM, "tokenizer": AutoTokenizer, "use_pipeline": False},
-    "dialogpt-large": {"path": "./models/dialogpt-large", "library": AutoModelForCausalLM, "tokenizer": AutoTokenizer, "use_pipeline": False},
-    "gpt-neo-125M": {"path": "./models/gpt-neo-125M", "library": AutoModelForCausalLM, "tokenizer": AutoTokenizer, "use_pipeline": True},  # اضافه کردن مدل جدید
+    "dialoGPT": {"path": "./models/dialogpt", "library": AutoModelForCausalLM, "tokenizer": AutoTokenizer, "use_pipeline": False},
+    "dialoGPT-medium": {"path": "./models/dialogpt-medium", "library": AutoModelForCausalLM, "tokenizer": AutoTokenizer, "use_pipeline": False},
+    "dialoGPT-large": {"path": "./models/dialogpt-large", "library": AutoModelForCausalLM, "tokenizer": AutoTokenizer, "use_pipeline": False},
+    "GPT-Neo-125M": {"path": "./models/GPT-neo-125M", "library": AutoModelForCausalLM, "tokenizer": AutoTokenizer, "use_pipeline": True},  # اضافه کردن مدل جدید
 }
 
 loaded_models = {}
@@ -32,7 +32,12 @@ def load_model_lazy(model_name):
     # اگر مدل از pipeline پشتیبانی می‌کند
     if model_info.get("use_pipeline", False):
         print(f"Using pipeline for model: {model_name}")
-        model_pipeline = pipeline("text-generation", model=model_info["path"])
+        model_pipeline = pipeline(
+            "text-generation",
+            model=model_info["path"],
+            truncation=True,  # فعال کردن truncation
+            pad_token_id=50256  # تنظیم pad_token_id به eos_token_id مدل GPT-Neo
+        )
         loaded_models[model_name] = {"pipeline": model_pipeline}
         return {"pipeline": model_pipeline}
 
@@ -52,7 +57,7 @@ def unload_model(model_name):
     if model_name in loaded_models:
         if "pipeline" in loaded_models[model_name]:
             del loaded_models[model_name]["pipeline"]
-        else:
+        elif "model" in loaded_models[model_name]:
             del loaded_models[model_name]["model"]
             del loaded_models[model_name]["tokenizer"]
         torch.cuda.empty_cache()
