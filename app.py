@@ -4,7 +4,7 @@ from functions import *
 from functions import _generate_code
 
 # Supported models
-models_options_general = ['GPT2', 'GPT2-medium', 'GPT2-large', 'GPT2-persian', 'GPT-Neo-125M']
+models_options_general = ['GPT2', 'GPT2-medium', 'GPT2-large', 'GPT2-medium-persian', 'GPT-Neo-125M', 'GPT2-persian' ]
 models_options_codegen = ['codegen']
 models_options_chatbot = ['dialoGPT', 'dialoGPT-medium', 'dialoGPT-large']
 
@@ -24,7 +24,7 @@ with gr.Blocks() as interface:
                     input_text = gr.Textbox(label="Input Text", placeholder="Enter your text here...", lines=4, max_lines=6)
                     selected_model = gr.Radio(choices=models_options_general, value="GPT2", label="Select Model", type="value")
                     with gr.Row():
-                        max_tokens = gr.Slider(10, 100, value=50, step=1, label="Max New Tokens", interactive=True)
+                        max_tokens = gr.Slider(10, 900, value=50, step=1, label="Max New Tokens", interactive=True)
                 with gr.Column(scale=1, min_width=350):
                     output_text = gr.Textbox(label="Generated Text", interactive=False, lines=8, max_lines=12)
                     generate_button = gr.Button("Generate Text", variant="primary")
@@ -100,11 +100,6 @@ with gr.Blocks() as interface:
                 inputs=[train_model_selector, train_method, epochs, batch_size, password, custom_text, dataset_file, dataset_name, split_name],
                 outputs=train_status,
             )
-            train_button.click(
-                verify_and_train_combined,
-                inputs=[train_model_selector, train_method, epochs, batch_size, password, custom_text, dataset_file, dataset_name, split_name],
-                outputs=train_status,
-            )
 
         with gr.Tab("Code Generator"):
             gr.Markdown("### Generate Code from Descriptions")
@@ -114,7 +109,7 @@ with gr.Blocks() as interface:
                     code_max_tokens = gr.Slider(10, 500, value=150, step=10, label="Max Tokens")
                 with gr.Column(scale=1, min_width=350):
                     generated_code = gr.Textbox(label="Generated Code", interactive=False, lines=10, max_lines=20)
-                    generate_code_button = gr.Button("Generate Code")
+                    generate_code_button = gr.Button("Generate Code", variant="primary")
 
             generate_code_button.click(
                 _generate_code,

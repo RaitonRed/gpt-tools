@@ -1,10 +1,10 @@
 import torch
 
-seed = 0
+seed = 42
 
-def generate_text(model_data, input_text, max_new_token):
+def generate_text(model_data, input_text, max_new_token, temperature=0.7, top_p=0.9, top_k=50):
     """
-    Generate text using the given model and tokenizer.
+    Generate text using the given model and tokenizer with sampling (do_sample=True) and top-p (nucleus sampling).
     """
     if "pipeline" in model_data:
         # اگر مدل از pipeline پشتیبانی می‌کند
@@ -12,7 +12,10 @@ def generate_text(model_data, input_text, max_new_token):
         generated_text = model_pipeline(
             input_text,
             max_length=max_new_token,
-            do_sample=False,  # غیرفعال کردن نمونه‌گیری (حالت حریصانه)
+            do_sample=True,  # فعال کردن نمونه‌گیری تصادفی
+            temperature=temperature,  # کنترل میزان خلاقیت
+            top_p=top_p, # نمونه‌گیری هسته‌ای (nucleus sampling)
+            top_k=top_k,
             truncation=True  # فعال کردن truncation
         )[0]["generated_text"]
         return generated_text
@@ -41,38 +44,41 @@ def generate_text(model_data, input_text, max_new_token):
             input_ids=input_ids,
             attention_mask=attention_mask,
             max_new_tokens=max_new_token,
-            do_sample=False,  # غیرفعال کردن نمونه‌گیری (حالت حریصانه)
+            do_sample=True,  # فعال کردن نمونه‌گیری تصادفی
+            temperature=temperature,  # کنترل میزان خلاقیت
+            top_p=top_p,  # نمونه‌گیری هسته‌ای (nucleus sampling)
+            top_k=top_k,
             pad_token_id=tokenizer.eos_token_id,
-            repetition_penalty=1.2,
-            no_repeat_ngram_size=3,
+            repetition_penalty=1.2,  # جلوگیری از تکرار
+            no_repeat_ngram_size=3,  # جلوگیری از تکرار n-gram
         )
 
         return tokenizer.decode(outputs[0], skip_special_tokens=True)
 
 def generate_code(model_data, prompt, max_new_tokens):
     """
-    Generate code based on the provided prompt using a code-specific model.
+    Generate code based on the provided prompt using sampling (do_sample=True) and top-p (nucleus sampling).
     """
     model = model_data["model"]
     tokenizer = model_data["tokenizer"]
 
     # تنظیم seed برای خروجی ثابت
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
+    torch.manual_seed(0)
+    torch.cuda.manual_seed_all(0)
 
     # توکنایز کردن ورودی
     input_ids = tokenizer.encode(prompt, return_tensors="pt")
 
     # ایجاد attention mask
-    attention_mask = torch.ones(input_ids.shape, device=input_ids.device)  # ایجاد یک ماسک توجه برای ورودی‌ها
+    attention_mask = torch.ones(input_ids.shape, device=input_ids.device)
 
     # تولید کد
     outputs = model.generate(
         input_ids=input_ids,
-        attention_mask=attention_mask,  # ارسال attention mask
+        attention_mask=attention_mask,
         max_new_tokens=max_new_tokens,
-        do_sample=False,
-        pad_token_id=tokenizer.eos_token_id,  # تنظیم شناسه توکن پایان به عنوان پرکننده
+        do_sample=False,  # فعال کردن نمونه‌گیری تصادفی
+        pad_token_id=tokenizer.eos_token_id,
         repetition_penalty=1.2,  # جلوگیری از تکرار
         no_repeat_ngram_size=3,  # جلوگیری از تکرار n-gram
     )

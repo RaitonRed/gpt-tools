@@ -21,7 +21,7 @@ def _generate_code(code_prompt, max_tokens, selected_model='codegen'):
     generated_code = generate_code(model_data, code_prompt, max_tokens)
 
     # Unload the model after use
-    unload_model(selected_model)
+    unload_model(selected_model)  # تخلیه مدل پس از استفاده
 
     return generated_code
 
