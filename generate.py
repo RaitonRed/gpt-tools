@@ -84,3 +84,27 @@ def generate_code(model_data, prompt, max_new_tokens):
     )
     
     return tokenizer.decode(outputs[0], skip_special_tokens=True)
+
+def summarize_text(input_text, model, tokenizer, max_length=130, min_length=30):
+    """
+    Summarize the input text using the provided model and tokenizer.
+    """
+    try:
+        inputs = tokenizer(input_text, return_tensors="pt", max_length=1024, truncation=True)
+
+        # Generate summary
+        summary_ids = model.generate(
+            inputs["input_ids"],
+            max_length=max_length,
+            min_length=min_length,
+            do_sample=True,
+            temperature=0.7,
+            top_p=0.9,
+            num_return_sequences=1
+        )
+
+        result = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
+        return result
+    except Exception as e:
+        print(f"Error during summarization: {str(e)}")
+        return f"Error during summarization: {str(e)}"

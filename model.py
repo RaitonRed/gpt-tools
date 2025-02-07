@@ -15,8 +15,8 @@ model_dict = {
     "GPT-Neo-125M": {"path": "./models/GPT-neo-125M", "library": AutoModelForCausalLM, "tokenizer": AutoTokenizer, "use_pipeline": True},
     "bert-emotion": {"path": "./models/bert-emotion", "library": AutoModelForSequenceClassification, "tokenizer": AutoTokenizer, "use_pipeline": True},
     "GPT2-persian": {"path": "./models/gpt2-persian", "library": GPT2LMHeadModel, "tokenizer": AutoTokenizer, "use_pipeline": True},
-    "Bart-large-CNN": {"path": "./models/bart-large", "library": AutoModelForSeq2SeqLM, "tokenizer": AutoTokenizer, "use_pipeline": True},
-    "bert-summary": {"path": "./models/bert-summary", "library": AutoModelForSeq2SeqLM, "tokenizer": AutoTokenizer, "use_pipeline": True}
+    "Bart-large-CNN": {"path": "./models/bart-large", "library": AutoModelForSeq2SeqLM, "tokenizer": AutoTokenizer, "use_pipeline": False},
+    "bert-summary": {"path": "./models/bert-summary", "library": AutoModelForSeq2SeqLM, "tokenizer": AutoTokenizer, "use_pipeline": False}
 }
 
 loaded_models = {}
@@ -38,16 +38,6 @@ def load_model_lazy(model_name):
                 "text-classification",
                 model=model_info["path"],
                 truncation=True
-            )
-        elif model_name == "bert-summary":
-            model_pipeline = pipeline(
-                "summarization", 
-                model=model_info['path']
-            )
-        elif model_name == "Bart-large-CNN":
-            model_pipeline = pipeline(
-                "summarization", 
-                model=model_info['path']
             )
     
         else:

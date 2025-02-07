@@ -1,6 +1,6 @@
 import torch
 from model import load_model_lazy, unload_model
-from generate import generate_code, generate_text
+from generate import *
 from database import *
 import train
 import uuid
@@ -274,35 +274,42 @@ def chatbot_response_with_emotion(username, input_text, selected_model, chat_id=
     return updated_history, chat_id, user_emotion
 
 
-def summarize_text(input_text, selected_model, max_length=130, min_length=30):
+def handle_summarization(input_text, selected_model, max_length=130, min_length=30):
     """
-    Summarize the input text using the BART-large-CNN model.
+    Handle the summarization process, including model loading and unloading.
     """
     # Load the model lazily
     model_data = load_model_lazy(selected_model)
 
     if model_data['model'] is None or model_data['tokenizer'] is None:
         print("Error: Model or tokenizer not loaded correctly!")
+        return "Error: Model or tokenizer not loaded correctly!"
     else:
         print("Model and tokenizer loaded successfully!")
     
-    if "pipeline" in model_data:
-        # If the model supports pipeline
-        summarizer = model_data["pipeline"]
-        try:
-            summary = summarizer(input_text, max_length=max_length, min_length=min_length, do_sample=True, temperature=0.7, top_p=0.9)
-            #logger.info(f"Raw summarizer output: {summary}")
-            
+    try:
+        if "pipeline" in model_data:
+            # If the model supports pipeline
+            summarizer = model_data["pipeline"]
+            summary = summarizer(input_text, max_length=max_length, min_length=min_length, do_sample=False)
+
             if summary and isinstance(summary, list) and len(summary) > 0:
                 if 'generated_text' in summary[0]:
-                    return summary[0]['generated_text']
+                    result = summary[0]['generated_text']
                 else:
-                    logger.warning("'generated_textt' key not found in the summarizer output")
-                    return f"Unexpected summarizer output format: {summary[0]}"
+                    print("'generated_text' key not found in the summarizer output")
+                    result = f"Unexpected summarizer output format: {summary[0]}"
             else:
-                logger.warning(f"Unexpected summarizer output: {summary}")
-                return "No summary generated. The summarizer returned an unexpected output."
-        except Exception as e:
-            logger.error(f"Error during summarization: {str(e)}", exc_info=True)
-            return f"Error during summarization: {str(e)}"
-    unload_model(selected_model)
+                print(f"Unexpected summarizer output: {summary}")
+                result = "No summary generated. The summarizer returned an unexpected output."
+        else:
+            # If the model doesn't support pipeline, use the model and tokenizer directly
+            result = summarize_text(input_text, model_data['model'], model_data['tokenizer'], max_length, min_length)
+
+        
+        return result
+    except Exception as e:
+        print(f"Error during summarization: {str(e)}")
+        return f"Error during summarization: {str(e)}"
+    finally:
+        unload_model(selected_model)
