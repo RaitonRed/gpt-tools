@@ -8,7 +8,7 @@
 ---
 ## **Hugging Face Space**
 
-![(Hugging face)](https://huggingface.co/spaces/AliMc2021/gpt-tools)
+[(Hugging face)](https://huggingface.co/spaces/AliMc2021/gpt-tools)
 
 ---
 
