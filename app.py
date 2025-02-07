@@ -7,6 +7,7 @@ from functions import _generate_code
 models_options_general = ['GPT2', 'GPT2-medium', 'GPT2-large', 'GPT2-medium-persian', 'GPT-Neo-125M', 'GPT2-persian' ]
 models_options_codegen = ['codegen']
 models_options_chatbot = ['dialoGPT', 'dialoGPT-medium', 'dialoGPT-large']
+models_options_summarization = ['Bart-large-CNN', 'bert-summary']
 
 # Create database
 create_db()
@@ -183,6 +184,40 @@ with gr.Blocks() as interface:
                 inputs=[username],
                 outputs=[fetch_output],
             )
+
+        with gr.Tab("Text Summarization"):
+            with gr.Row():
+                with gr.Column(scale=1, min_width=350):
+                    text_input = gr.Textbox(label="Text input", placeholder="Enter your text here...", lines=8, max_lines=12)
+                    max_length = gr.Slider(50, 300, value=130, step=1, label="Max Length", interactive=True)
+                    min_length = gr.Slider(10, 100, value=30, step=1, label="Min Length", interactive=True)
+                    selected_model = gr.Radio(choices=models_options_summarization, value="Bart-large-CNN", label="Select Model", type="value")
+                    summarize_button = gr.Button("Summarize Text", variant="primary")
+                with gr.Column(scale=1, min_width=350):
+                    summary_output = gr.Textbox(label="Summary", interactive=False, lines=8, max_lines=12)
+                    error_output = gr.Textbox(label="Status", interactive=False, visible=False)
+
+            def summarize_with_error_handling(text,  selected_model, max_len, min_len):
+                try:
+                    summary = summarize_text(text, selected_model, max_length=max_len, min_length=min_len)
+                    if summary.startswith("Error during summarization:"):
+                        return "", summary
+                    return summary, ""
+                except Exception as e:
+                    return "", f"An unexpected error occurred: {str(e)}"
+
+            summarize_button.click(
+                summarize_with_error_handling,
+                inputs=[text_input, selected_model, max_length, min_length],
+                outputs=[summary_output, error_output]
+            )
+
+            # Show/hide error output based on whether there's an error
+            summarize_button.click(
+                lambda x: gr.update(visible=bool(x)),
+                inputs=[error_output],
+                outputs=[error_output]
+            )
     
     generate_story_button.click(
         generate_story,
@@ -190,11 +225,11 @@ with gr.Blocks() as interface:
         outputs=generated_story,
     )
 
-    gr.Markdown("Made by **AliDev2020** with ❤️")
+    gr.Markdown("Made by **AliDev.X** with ❤️")
 
 # Launch the interface
 interface.queue().launch(
-    server_port=7860, 
+    server_port=7890, 
     show_error=True, 
     inline=False,
     #share=True,

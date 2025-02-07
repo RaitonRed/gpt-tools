@@ -4,6 +4,10 @@ from generate import generate_code, generate_text
 from database import *
 import train
 import uuid
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 train_pass = '6818'
 
@@ -268,3 +272,37 @@ def chatbot_response_with_emotion(username, input_text, selected_model, chat_id=
     # بازگرداندن تاریخچه به‌روز شده و شناسه چت
     updated_history = chat_history + f"\nUser: {input_text}\nAI: {ai_response}"
     return updated_history, chat_id, user_emotion
+
+
+def summarize_text(input_text, selected_model, max_length=130, min_length=30):
+    """
+    Summarize the input text using the BART-large-CNN model.
+    """
+    # Load the model lazily
+    model_data = load_model_lazy(selected_model)
+
+    if model_data['model'] is None or model_data['tokenizer'] is None:
+        print("Error: Model or tokenizer not loaded correctly!")
+    else:
+        print("Model and tokenizer loaded successfully!")
+    
+    if "pipeline" in model_data:
+        # If the model supports pipeline
+        summarizer = model_data["pipeline"]
+        try:
+            summary = summarizer(input_text, max_length=max_length, min_length=min_length, do_sample=True, temperature=0.7, top_p=0.9)
+            #logger.info(f"Raw summarizer output: {summary}")
+            
+            if summary and isinstance(summary, list) and len(summary) > 0:
+                if 'generated_text' in summary[0]:
+                    return summary[0]['generated_text']
+                else:
+                    logger.warning("'generated_textt' key not found in the summarizer output")
+                    return f"Unexpected summarizer output format: {summary[0]}"
+            else:
+                logger.warning(f"Unexpected summarizer output: {summary}")
+                return "No summary generated. The summarizer returned an unexpected output."
+        except Exception as e:
+            logger.error(f"Error during summarization: {str(e)}", exc_info=True)
+            return f"Error during summarization: {str(e)}"
+    unload_model(selected_model)
