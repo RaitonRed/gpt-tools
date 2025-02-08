@@ -8,7 +8,8 @@ model_dict = {
     "GPT2-medium": {"path": "./models/gpt2-medium", "library": GPT2LMHeadModel, "tokenizer": GPT2Tokenizer, "use_pipeline": False},
     "GPT2-large": {"path": "./models/gpt2-large", "library": AutoModelForCausalLM, "tokenizer": AutoTokenizer, "use_pipeline": False},
     "GPT2-medium-persian": {"path": "./models/gpt2-medium-persian", "library": GPT2LMHeadModel, "tokenizer": AutoTokenizer, "use_pipeline": False},
-    "codegen": {"path": "./models/codegen", "library": AutoModelForCausalLM, "tokenizer": AutoTokenizer, "use_pipeline": False},
+    "codegen-350M-mono": {"path": "./models/codegen-350M-mono", "library": AutoModelForCausalLM, "tokenizer": AutoTokenizer, "use_pipeline": False},
+    "codegen-350M-multi": {"path": "./models/codegen-350M-multi", "library": AutoModelForCausalLM, "tokenizer": AutoTokenizer, "use_pipeline": False},
     "dialoGPT": {"path": "./models/dialogpt", "library": AutoModelForCausalLM, "tokenizer": AutoTokenizer, "use_pipeline": False},
     "dialoGPT-medium": {"path": "./models/dialogpt-medium", "library": AutoModelForCausalLM, "tokenizer": AutoTokenizer, "use_pipeline": False},
     "dialoGPT-large": {"path": "./models/dialogpt-large", "library": AutoModelForCausalLM, "tokenizer": AutoTokenizer, "use_pipeline": False},
@@ -53,10 +54,11 @@ def load_model_lazy(model_name):
                 repetition_penalty=1.2,  # جلوگیری از تکرار
                 no_repeat_ngram_size=3,  # جلوگیری از تکرار n-gram
             )
+
     
         loaded_models[model_name] = {"pipeline": model_pipeline}
         return {"pipeline": model_pipeline}
-
+    
     # در غیر این صورت، مدل و توکنایزر را به روش قدیمی بارگذاری کنید
     model = model_info["library"].from_pretrained(model_info["path"])
     tokenizer = model_info["tokenizer"].from_pretrained(model_info["path"])

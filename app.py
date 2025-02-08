@@ -5,7 +5,7 @@ from functions import _generate_code
 
 # Supported models
 models_options_general = ['GPT2', 'GPT2-medium', 'GPT2-large', 'GPT2-medium-persian', 'GPT-Neo-125M', 'GPT2-persian' ]
-models_options_codegen = ['codegen']
+models_options_codegen = ['codegen-350M-mono', 'codegen-350M-multi']
 models_options_chatbot = ['dialoGPT', 'dialoGPT-medium', 'dialoGPT-large']
 models_options_summarization = ['Bart-large-CNN', 'bert-summary']
 
@@ -108,13 +108,14 @@ with gr.Blocks() as interface:
                 with gr.Column(scale=1, min_width=350):
                     code_prompt = gr.Textbox(label="Code Prompt", placeholder="Describe your coding task, e.g., 'Write a Python function to calculate Fibonacci numbers.'")
                     code_max_tokens = gr.Slider(10, 500, value=150, step=10, label="Max Tokens")
+                    selected_model = gr.Radio(models_options_codegen, value='codegen-350M-multi', label="Select model")
                 with gr.Column(scale=1, min_width=350):
                     generated_code = gr.Textbox(label="Generated Code", interactive=False, lines=10, max_lines=20)
                     generate_code_button = gr.Button("Generate Code", variant="primary")
 
             generate_code_button.click(
                 _generate_code,
-                inputs=[code_prompt, code_max_tokens],
+                inputs=[code_prompt, code_max_tokens, selected_model],
                 outputs=generated_code,
             )
 

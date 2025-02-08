@@ -14,7 +14,7 @@ train_pass = '6818'
 # AI-Powered Story World Builder Functions
 world_data = {}
 
-def _generate_code(code_prompt, max_tokens, selected_model='codegen'):
+def _generate_code(code_prompt, max_tokens, selected_model):
     """
     Generate code based on the code prompt and selected model.
     """
