@@ -8,6 +8,8 @@ models_options_general = ['GPT2', 'GPT2-medium', 'GPT2-large', 'GPT2-medium-pers
 models_options_codegen = ['codegen-350M-mono', 'codegen-350M-multi']
 models_options_chatbot = ['dialoGPT', 'dialoGPT-medium', 'dialoGPT-large']
 models_options_summarization = ['Bart-large-CNN', 'bert-summary']
+models_options_translation = ['T5-small']
+translation_modes = ['English-French', 'French-English', 'Romanian-German', 'German-Romanian', 'English-German']
 
 # Create database
 create_db()
@@ -202,6 +204,23 @@ with gr.Blocks() as interface:
                 inputs=[text_input, selected_model, max_length, min_length],
                 outputs=[summary_output]
             )
+        
+        with gr.Tab("Translation"):
+            with gr.Row():
+                with gr.Column(scale=1, min_width=250):
+                    text_input = gr.Textbox(label="Text Input", placeholder="Input your text here...", lines=3, max_lines=15)
+                    max_length = gr.Slider(10, 100, value=50, step=5, label="Max Length", interactive=True)
+                    selected_model = gr.Radio(choices=models_options_translation, value="T5-small", label="Select Model", type="value")
+                    mode = gr.Radio(choices=translation_modes, value="English-French", label="Select translation mode", type="value")
+                with gr.Column(scale=1, min_width=250):
+                    translation_output = gr.Textbox(label="Translation Output", interactive=False, lines=5, max_lines=20)
+                    translation_button = gr.Button("Translate text", variant="primary")
+
+        translation_button.click(
+            handle_translation,
+            inputs=[text_input, selected_model, mode, max_length],
+            outputs=translation_output
+        )
     
     generate_story_button.click(
         generate_story,
@@ -213,7 +232,7 @@ with gr.Blocks() as interface:
 
 # Launch the interface
 interface.queue().launch(
-    server_port=7890, 
+    server_port=7860,
     show_error=True, 
     inline=False,
     #share=True,

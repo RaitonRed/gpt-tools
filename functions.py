@@ -313,3 +313,21 @@ def handle_summarization(input_text, selected_model, max_length=130, min_length=
         return f"Error during summarization: {str(e)}"
     finally:
         unload_model(selected_model)
+
+def handle_translation(input_text, selected_model, mode, max_length):
+    model_data = load_model_lazy(selected_model)
+
+    if model_data['model'] is None or model_data['tokenizer'] is None:
+        print("Error: Model or tokenizer not loaded correctly!")
+        return "Error: Model or tokenizer not loaded correctly!"
+    else:
+        print("Model and tokenizer loaded successfully!")
+
+    try:
+        result = translate_text(input_text, model_data['model'], model_data['tokenizer'], max_length, mode)
+        return result
+    except Exception as e:
+        print(f"Error during translation: {str(e)}")
+        return f"Error during translation: {str(e)}"
+    finally:
+        unload_model(selected_model)

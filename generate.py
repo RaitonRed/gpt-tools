@@ -108,3 +108,33 @@ def summarize_text(input_text, model, tokenizer, max_length=130, min_length=30):
     except Exception as e:
         print(f"Error during summarization: {str(e)}")
         return f"Error during summarization: {str(e)}"
+
+def translate_text(input_text, model, tokenizer, max_length, mode):
+    try:
+        # اضافه کردن پیش‌وند مناسب بر اساس حالت ترجمه
+        if mode == "English-French":
+            prompt = f"translate English to French: {input_text}"
+        elif mode == "French-English":
+            prompt = f"translate French to English: {input_text}"
+        elif mode == "Romanian-German":
+            prompt = f"translate Romanian to German: {input_text}"
+        elif mode == "German-Romanian":
+            prompt = f"translate German to Romanian: {input_text}"
+        elif mode == "English-German":
+            prompt = f"translate English to German: {input_text}"
+        else:
+            return "Error: Invalid translation mode."
+
+        # توکن‌سازی متن ورودی
+        input_ids = tokenizer.encode(prompt, return_tensors="pt")
+
+        # تولید ترجمه با مدل
+        outputs = model.generate(input_ids, max_length=max_length)
+
+        # تبدیل توکن‌های خروجی به متن
+        translated_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
+
+        return translated_text
+    except Exception as e:
+        print(f"Error during translation: {str(e)}")
+        return f"Error during translation: {str(e)}"

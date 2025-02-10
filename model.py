@@ -1,23 +1,24 @@
 import torch
 import gc
-from transformers import AutoModelForCausalLM, AutoTokenizer, GPT2LMHeadModel, GPT2Tokenizer, pipeline, AutoModelForSequenceClassification, AutoModelForSeq2SeqLM
+from transformers import AutoModelForCausalLM, AutoTokenizer, GPT2LMHeadModel, GPT2Tokenizer, pipeline, AutoModelForSequenceClassification, AutoModelForSeq2SeqLM, T5Tokenizer, T5ForConditionalGeneration
 
 # Dictionary of models and paths
 model_dict = {
-    "GPT2": {"path": "./models/gpt2", "library": GPT2LMHeadModel, "tokenizer": GPT2Tokenizer, "use_pipeline": False},
-    "GPT2-medium": {"path": "./models/gpt2-medium", "library": GPT2LMHeadModel, "tokenizer": GPT2Tokenizer, "use_pipeline": False},
-    "GPT2-large": {"path": "./models/gpt2-large", "library": AutoModelForCausalLM, "tokenizer": AutoTokenizer, "use_pipeline": False},
-    "GPT2-medium-persian": {"path": "./models/gpt2-medium-persian", "library": GPT2LMHeadModel, "tokenizer": AutoTokenizer, "use_pipeline": False},
-    "codegen-350M-mono": {"path": "./models/codegen-350M-mono", "library": AutoModelForCausalLM, "tokenizer": AutoTokenizer, "use_pipeline": False},
-    "codegen-350M-multi": {"path": "./models/codegen-350M-multi", "library": AutoModelForCausalLM, "tokenizer": AutoTokenizer, "use_pipeline": False},
-    "dialoGPT": {"path": "./models/dialogpt", "library": AutoModelForCausalLM, "tokenizer": AutoTokenizer, "use_pipeline": False},
-    "dialoGPT-medium": {"path": "./models/dialogpt-medium", "library": AutoModelForCausalLM, "tokenizer": AutoTokenizer, "use_pipeline": False},
-    "dialoGPT-large": {"path": "./models/dialogpt-large", "library": AutoModelForCausalLM, "tokenizer": AutoTokenizer, "use_pipeline": False},
-    "GPT-Neo-125M": {"path": "./models/GPT-neo-125M", "library": AutoModelForCausalLM, "tokenizer": AutoTokenizer, "use_pipeline": True},
-    "bert-emotion": {"path": "./models/bert-emotion", "library": AutoModelForSequenceClassification, "tokenizer": AutoTokenizer, "use_pipeline": True},
-    "GPT2-persian": {"path": "./models/gpt2-persian", "library": GPT2LMHeadModel, "tokenizer": AutoTokenizer, "use_pipeline": True},
-    "Bart-large-CNN": {"path": "./models/bart-large", "library": AutoModelForSeq2SeqLM, "tokenizer": AutoTokenizer, "use_pipeline": False},
-    "bert-summary": {"path": "./models/bert-summary", "library": AutoModelForSeq2SeqLM, "tokenizer": AutoTokenizer, "use_pipeline": False}
+    "GPT2": {"path": "./models/gpt2", "library": GPT2LMHeadModel, "tokenizer": GPT2Tokenizer, "use_pipeline": False, "legacy": False},
+    "GPT2-medium": {"path": "./models/gpt2-medium", "library": GPT2LMHeadModel, "tokenizer": GPT2Tokenizer, "use_pipeline": False, "legacy": False},
+    "GPT2-large": {"path": "./models/gpt2-large", "library": AutoModelForCausalLM, "tokenizer": AutoTokenizer, "use_pipeline": False, "legacy": False},
+    "GPT2-medium-persian": {"path": "./models/gpt2-medium-persian", "library": GPT2LMHeadModel, "tokenizer": AutoTokenizer, "use_pipeline": False, "legacy": False},
+    "codegen-350M-mono": {"path": "./models/codegen-350M-mono", "library": AutoModelForCausalLM, "tokenizer": AutoTokenizer, "use_pipeline": False, "legacy": False},
+    "codegen-350M-multi": {"path": "./models/codegen-350M-multi", "library": AutoModelForCausalLM, "tokenizer": AutoTokenizer, "use_pipeline": False, "legacy": False},
+    "dialoGPT": {"path": "./models/dialogpt", "library": AutoModelForCausalLM, "tokenizer": AutoTokenizer, "use_pipeline": False, "legacy": False},
+    "dialoGPT-medium": {"path": "./models/dialogpt-medium", "library": AutoModelForCausalLM, "tokenizer": AutoTokenizer, "use_pipeline": False, "legacy": False},
+    "dialoGPT-large": {"path": "./models/dialogpt-large", "library": AutoModelForCausalLM, "tokenizer": AutoTokenizer, "use_pipeline": False, "legacy": False},
+    "GPT-Neo-125M": {"path": "./models/GPT-neo-125M", "library": AutoModelForCausalLM, "tokenizer": AutoTokenizer, "use_pipeline": True, "legacy": False},
+    "bert-emotion": {"path": "./models/bert-emotion", "library": AutoModelForSequenceClassification, "tokenizer": AutoTokenizer, "use_pipeline": True, "legacy": False},
+    "GPT2-persian": {"path": "./models/gpt2-persian", "library": GPT2LMHeadModel, "tokenizer": AutoTokenizer, "use_pipeline": True, "legacy": False},
+    "Bart-large-CNN": {"path": "./models/bart-large", "library": AutoModelForSeq2SeqLM, "tokenizer": AutoTokenizer, "use_pipeline": False, "legacy": False},
+    "bert-summary": {"path": "./models/bert-summary", "library": AutoModelForSeq2SeqLM, "tokenizer": AutoTokenizer, "use_pipeline": False, "legacy": False},
+    "T5-small": {"path": "./models/t5-small", "library": T5ForConditionalGeneration, "tokenizer": T5Tokenizer, "use_pipeline": False, "legacy": False}
 }
 
 loaded_models = {}
@@ -30,7 +31,7 @@ def load_model_lazy(model_name):
 
     model_info = model_dict[model_name]
     print(f"Loading model: {model_name}")
-
+    
     # اگر مدل از pipeline پشتیبانی می‌کند
     if model_info.get("use_pipeline", False):
         print(f"Using pipeline for model: {model_name}")
@@ -50,18 +51,22 @@ def load_model_lazy(model_name):
                 do_sample=True,  # فعال کردن نمونه‌گیری تصادفی
                 temperature=0.7,  # کنترل میزان خلاقیت
                 top_p=0.9,  # نمونه‌گیری هسته‌ای (nucleus sampling)
-                top_k=50,
+                #top_k=50,
                 repetition_penalty=1.2,  # جلوگیری از تکرار
                 no_repeat_ngram_size=3,  # جلوگیری از تکرار n-gram
             )
-
     
         loaded_models[model_name] = {"pipeline": model_pipeline}
         return {"pipeline": model_pipeline}
     
     # در غیر این صورت، مدل و توکنایزر را به روش قدیمی بارگذاری کنید
     model = model_info["library"].from_pretrained(model_info["path"])
-    tokenizer = model_info["tokenizer"].from_pretrained(model_info["path"])
+    
+    # اعمال legacy=False برای توکنایزر T5
+    if model_info["tokenizer"] == T5Tokenizer:
+        tokenizer = model_info["tokenizer"].from_pretrained(model_info["path"], legacy=False)
+    else:
+        tokenizer = model_info["tokenizer"].from_pretrained(model_info["path"])
 
     # تنظیمات پیش‌فرض
     if tokenizer.pad_token is None:
