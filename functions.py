@@ -20,6 +20,9 @@ def _generate_code(code_prompt, max_tokens, selected_model):
     return generated_code
 
 def generate(input_text, selected_model, max_new_token):
+    if not input_text.strip():
+        return "Error: Input text cannot be empty."
+    
     model_data = load_model_lazy(selected_model)
     generated_text = generate_text(model_data, input_text, max_new_token)
     insert_into_db(input_text, selected_model)

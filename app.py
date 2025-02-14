@@ -1,247 +1,130 @@
-import gradio as gr
+import streamlit as st
 from database import create_db
 from functions import *
 from functions import _generate_code
-import signal
-import sys
 
 # Supported models
-models_options_general = ['GPT2', 'GPT2-medium', 'GPT2-large', 'GPT2-medium-persian', 'GPT-Neo-125M', 'GPT2-persian' ]
+models_options_general = ['GPT2', 'GPT2-medium', 'GPT2-large', 'GPT2-medium-persian', 'GPT-Neo-125M', 'GPT2-persian']
 models_options_codegen = ['codegen-350M-mono', 'codegen-350M-multi']
 models_options_chatbot = ['dialoGPT', 'dialoGPT-medium', 'dialoGPT-large', "Blenderbot-400M"]
 models_options_summarization = ['Bart-large-CNN', 'bert-summary']
 models_options_translation = ['T5-small']
 translation_modes = ['English-French', 'French-English', 'Romanian-German', 'German-Romanian', 'English-German']
 
-def signal_handler(sig, frame):
-    print("Interrupted by user")
-    sys.exit(0)
-
 # Create database
 create_db()
 
-# Interface setup
-with gr.Blocks() as interface:
-    gr.Markdown(
-        "# **GPT Tools**\n\n"
-        "Generate something using GPT models. Select the model and adjust the parameters for optimal results."
-    )
-    with gr.Tabs():
-        with gr.Tab("Text Generator"):
-            with gr.Row():
-                with gr.Column(scale=1, min_width=350):
-                    input_text = gr.Textbox(label="Input Text", placeholder="Enter your text here...", lines=4, max_lines=6)
-                    selected_model = gr.Radio(choices=models_options_general, value="GPT2", label="Select Model", type="value")
-                    with gr.Row():
-                        max_tokens = gr.Slider(10, 900, value=50, step=1, label="Max New Tokens", interactive=True)
-                with gr.Column(scale=1, min_width=350):
-                    output_text = gr.Textbox(label="Generated Text", interactive=False, lines=8, max_lines=12)
-                    generate_button = gr.Button("Generate Text", variant="primary")
+# Streamlit App
+st.title("GPT Tools")
+st.markdown("Generate something using GPT models. Select the model and adjust the parameters for optimal results.")
 
-            generate_button.click(
-                generate,
-                inputs=[input_text, selected_model, max_tokens],
-                outputs=output_text,
-            )
+# Sidebar for navigation
+st.sidebar.title("Navigation")
+option = st.sidebar.radio("Go to", [
+    "Text Generator", "Multiverse Story Generator", "Interactive Story Writing", 
+    "Training", "Code Generator", "Story World Builder", "Chatbot", "Text Summarization"
+])
 
+if option == "Text Generator":
+    st.header("Text Generator")
+    input_text = st.text_area("Input Text", placeholder="Enter your text here...", height=100)
+    selected_model = st.radio("Select Model", models_options_general, index=0, key="text_generator_model")
+    max_tokens = st.slider("Max New Tokens", 10, 900, 50, 1, key="max_new_tokens_slider_1")
+    if st.button("Generate Text"):
+        output_text = generate(input_text, selected_model, max_tokens)
+        st.text_area("Generated Text", value=output_text, height=200, disabled=True)
 
-        with gr.Tab("Multiverse Story Generator"):
-            with gr.Row():
-                with gr.Column(scale=1, min_width=350):
-                    input_text = gr.Textbox(label="Enter your story idea", placeholder="e.g. A scientist discovers a parallel universe...", lines=4, max_lines=6)
-                    selected_model = gr.Radio(choices=models_options_general, value="GPT2", label="Select Model for Story Generation", type="value")
-                    max_length = gr.Slider(50, 300, value=150, step=1, label="Max Length", interactive=True)
+elif option == "Multiverse Story Generator":
+    st.header("Multiverse Story Generator")
+    input_text = st.text_area("Enter your story idea", placeholder="e.g. A scientist discovers a parallel universe...", height=100)
+    selected_model = st.radio("Select Model for Story Generation", models_options_general, index=0, key="multiverse_story_model")
+    max_length = st.slider("Max Length", 50, 300, 150, 1, key="max_new_tokens_slider_2")
+    if st.button("Generate Parallel Worlds"):
+        output_text = generate_multiverse(input_text, selected_model, max_length)
+        st.text_area("Generated Worlds", value=output_text, height=300, disabled=True)
 
-                with gr.Column(scale=1, min_width=350):
-                    output_text = gr.Textbox(label="Generated Worlds", interactive=False, lines=12, max_lines=20)
-                    generate_button = gr.Button("Generate Parallel Worlds", variant="primary")
+elif option == "Interactive Story Writing":
+    st.header("Interactive Story Writing")
+    story_input = st.text_area("Add to Story", placeholder="Enter your part of the story...", height=100)
+    story_model = st.radio("Select Model", models_options_general, index=0, key="interactive_story_model")
+    story_max_length = st.slider("Max Length", 50, 300, 50, 1, key="max_new_tokens_slider_3")
+    if st.button("Generate Next Part"):
+        story_text = interactive_story(story_input, story_model, story_max_length)
+        st.text_area("Story So Far", value=story_text, height=300, disabled=True)
+    if st.button("Reset Story"):
+        reset_story()
+        st.text_area("Story So Far", value="", height=300, disabled=True)
 
-            generate_button.click(
-                generate_multiverse,
-                inputs=[input_text, selected_model, max_length],
-                outputs=output_text,
-            )
+elif option == "Training":
+    st.header("Train Model")
+    train_model_selector = st.radio("Select Model for Training", models_options_general, index=0)
+    train_method = st.radio("Training Method", ["Custom Text", "Database", "Dataset File", "Hugging Face Dataset"], index=0)
+    dataset_name = st.text_input("Hugging Face Dataset Name", placeholder="Enter dataset name (e.g., ag_news)")
+    split_name = st.text_input("Dataset Split", placeholder="e.g., train, test, validation")
+    epochs = st.slider("Epochs", 1, 100, 10, 1, key="epochs_slider")
+    batch_size = st.slider("Batch Size", 1, 100, 8, 1, key="batch_size_slider")
+    password = st.text_input("Enter Training Password", placeholder="Enter password", type="password")
+    custom_text = st.text_area("Custom Text (optional)", placeholder="Enter custom text for training...", height=100)
+    dataset_file = st.file_uploader("Upload Dataset", type=[".parquet", ".csv", ".json", ".txt"])
+    if st.button("Train Model"):
+        train_status = verify_and_train_combined(train_model_selector, train_method, epochs, batch_size, password, custom_text, dataset_file, dataset_name, split_name)
+        st.text_area("Training Status", value=train_status, height=100, disabled=True)
 
-        with gr.Tab("Interactive Story Writing"):
-            with gr.Row():
-                with gr.Column(scale=1, min_width=350):
-                    story_input = gr.Textbox(label="Add to Story", placeholder="Enter your part of the story...", lines=4, max_lines=6)
-                    story_model = gr.Radio(choices=models_options_general, value="GPT2", label="Select Model", type="value")
-                    story_max_length = gr.Slider(50, 300, value=50, step=1, label="Max Length", interactive=True)
-                with gr.Column(scale=1, min_width=350):
-                    story_text = gr.Textbox(label="Story So Far", interactive=False, lines=12, max_lines=20)
-                    story_button = gr.Button("Generate Next Part", variant="primary")
-                    reset_button = gr.Button("Reset Story", variant="secondary")
+elif option == "Code Generator":
+    st.header("Code Generator")
+    code_prompt = st.text_area("Code Prompt", placeholder="Describe your coding task, e.g., 'Write a Python function to calculate Fibonacci numbers.'", height=100)
+    code_max_tokens = st.slider("Max Tokens", 10, 500, 150, 10, key="max_new_tokens_slider_4")
+    selected_model = st.radio("Select model", models_options_codegen, index=0)
+    if st.button("Generate Code"):
+        generated_code = _generate_code(code_prompt, code_max_tokens, selected_model)
+        st.text_area("Generated Code", value=generated_code, height=300, disabled=True)
 
-            story_button.click(
-                interactive_story,
-                inputs=[story_input, story_model, story_max_length],
-                outputs=story_text,
-            )
-            reset_button.click(
-                reset_story,
-                inputs=[],
-                outputs=story_text,
-            )
-
-        with gr.Tab("Training"):
-            gr.Markdown("# **Train Model**\n\n")
-            with gr.Column(scale=1, min_width=250):
-                train_model_selector = gr.Radio(choices=models_options_general, value="GPT2", label="Select Model for Training", type="value")
-                train_method = gr.Radio(
-                    choices=["Custom Text", "Database", "Dataset File", "Hugging Face Dataset"],
-                    value="Custom Text",
-                    label="Training Method",
-                    type="value"
-                )
-                dataset_name = gr.Textbox(label="Hugging Face Dataset Name", placeholder="Enter dataset name (e.g., ag_news)")
-                split_name = gr.Textbox(label="Dataset Split", placeholder="e.g., train, test, validation")
-                epochs = gr.Slider(1, 100, value=10, step=1, label="Epochs", interactive=True)
-                batch_size = gr.Slider(1, 100, value=8, step=1, label="Batch Size", interactive=True)
-                password = gr.Textbox(label="Enter Training Password", placeholder="Enter password", type="password")
-                custom_text = gr.Textbox(label="Custom Text (optional)", placeholder="Enter custom text for training...")
-                dataset_file = gr.File(label="Upload Dataset", type="filepath", file_types=[".parquet", ".csv", ".json", ".txt"])
-                train_button = gr.Button("Train Model", variant="primary")
-                train_status = gr.Textbox(label="Training Status", interactive=False)
-            
-            train_button.click(
-                verify_and_train_combined,
-                inputs=[train_model_selector, train_method, epochs, batch_size, password, custom_text, dataset_file, dataset_name, split_name],
-                outputs=train_status,
-            )
-
-        with gr.Tab("Code Generator"):
-            gr.Markdown("### Generate Code from Descriptions")
-            with gr.Row():
-                with gr.Column(scale=1, min_width=350):
-                    code_prompt = gr.Textbox(label="Code Prompt", placeholder="Describe your coding task, e.g., 'Write a Python function to calculate Fibonacci numbers.'")
-                    code_max_tokens = gr.Slider(10, 500, value=150, step=10, label="Max Tokens")
-                    selected_model = gr.Radio(models_options_codegen, value='codegen-350M-multi', label="Select model")
-                with gr.Column(scale=1, min_width=350):
-                    generated_code = gr.Textbox(label="Generated Code", interactive=False, lines=10, max_lines=20)
-                    generate_code_button = gr.Button("Generate Code", variant="primary")
-
-            generate_code_button.click(
-                _generate_code,
-                inputs=[code_prompt, code_max_tokens, selected_model],
-                outputs=generated_code,
-            )
-
-        # Add AI-Powered Story World Builder Tab
-        with gr.Tab("Story World Builder"):
-            with gr.Row():
-                with gr.Column(scale=1, min_width=350):
-                    world_name = gr.Textbox(label="World Name", placeholder="Enter your world name...")
-                    locations = gr.Textbox(label="Locations", placeholder="Enter locations separated by commas...")
-                    characters = gr.Textbox(label="Characters", placeholder="Enter characters separated by commas...")
-                    create_button = gr.Button("Create World", variant='primary')
-                    generate_story_button = gr.Button("Generate Story")
-                with gr.Column(scale=1, min_width=350):
-                    world_status = gr.Textbox(label="World Status", interactive=False)
-                    generated_story = gr.Textbox(label="Generated Story", interactive=False, lines=12, max_lines=20)
-
-
-            create_button.click(
-                define_world,
-                inputs=[world_name, locations, characters],
-                outputs=world_status,
-            )
-            
-            gr.Markdown("### Generate a Story in Your World")
-            with gr.Row():
-                with gr.Column(scale=1, min_width=350):
-                    story_world = gr.Textbox(label="Enter World Name", placeholder="World name...")
-                    event = gr.Textbox(label="Event", placeholder="Describe an event in the world...")
-                    selected_model = gr.Radio(choices=models_options_general, value="GPT2", label="Select Model", type="value")
-                    max_length = gr.Slider(50, 300, value=150, step=1, label="Max Length")
-
-        with gr.Tab("Chatbot"):
-            gr.Markdown("### **Chat With AI Models**")
-            with gr.Row():
-                with gr.Column(scale=1, min_width=250):
-                    username = gr.Textbox(label="Username", placeholder="Enter your username", lines=1)
-                    chat_id = gr.Textbox(label="Chat ID (optional)", placeholder="Enter chat ID or leave blank for a new chat", lines=1)
-                    selected_model = gr.Radio(models_options_chatbot, label="Select Model", value="dialoGPT")
-                    send_button = gr.Button("Send", variant="primary")
-                    reset_button = gr.Button("Reset Chat", variant="secondary")
-                with gr.Column(scale=1, min_width=250):
-                    input_text = gr.Textbox(label="Your Message", placeholder="Type your message here...", lines=2)
-                    emotion_output = gr.Textbox(label="Detected Emotion", interactive=False)
-                    chat_output = gr.Textbox(label="Chat History", lines=10, interactive=False)
-
-            send_button.click(
-                chatbot_response_with_emotion,
-                inputs=[username, input_text, selected_model, chat_id],
-                outputs=[chat_output, chat_id, emotion_output]
-            )
-
-            reset_button.click(
-                reset_chat,
-                inputs=[username],
-                outputs=[chat_output]
-            )
-            gr.Markdown("---")
-            gr.Markdown("### **Fetch Chat IDs**")
-            with gr.Row():
-                with gr.Column(scale=1, min_width=250):
-                    username = gr.Textbox(label="Username", placeholder="Enter your username", lines=1)
-                    fetch_btn = gr.Button("Fetch", variant="primary")
-                with gr.Column(scale=1, min_width=250):
-                    fetch_output = gr.Textbox(label="Chat IDs", lines=3, interactive=False)
-            fetch_btn.click(
-                chat_ids,
-                inputs=[username],
-                outputs=[fetch_output],
-            )
-
-        with gr.Tab("Text Summarization"):
-            with gr.Row():
-                with gr.Column(scale=1, min_width=350):
-                    text_input = gr.Textbox(label="Text input", placeholder="Enter your text here...", lines=8, max_lines=12)
-                    max_length = gr.Slider(50, 300, value=130, step=1, label="Max Length", interactive=True)
-                    min_length = gr.Slider(10, 100, value=30, step=1, label="Min Length", interactive=True)
-                    selected_model = gr.Radio(choices=models_options_summarization, value="Bart-large-CNN", label="Select Model", type="value")
-                with gr.Column(scale=1, min_width=350):
-                    summary_output = gr.Textbox(label="Summary", interactive=False, lines=8, max_lines=12)
-                    summarize_button = gr.Button("Summarize Text", variant="primary")
-
-            summarize_button.click(
-                handle_summarization,
-                inputs=[text_input, selected_model, max_length, min_length],
-                outputs=[summary_output]
-            )
-        
-        with gr.Tab("Translation"):
-            with gr.Row():
-                with gr.Column(scale=1, min_width=250):
-                    text_input = gr.Textbox(label="Text Input", placeholder="Input your text here...", lines=3, max_lines=15)
-                    max_length = gr.Slider(10, 100, value=50, step=5, label="Max Length", interactive=True)
-                    selected_model = gr.Radio(choices=models_options_translation, value="T5-small", label="Select Model", type="value")
-                    mode = gr.Radio(choices=translation_modes, value="English-French", label="Select translation mode", type="value")
-                with gr.Column(scale=1, min_width=250):
-                    translation_output = gr.Textbox(label="Translation Output", interactive=False, lines=5, max_lines=20)
-                    translation_button = gr.Button("Translate text", variant="primary")
-
-        translation_button.click(
-            handle_translation,
-            inputs=[text_input, selected_model, mode, max_length],
-            outputs=translation_output
-        )
+elif option == "Story World Builder":
+    st.header("Story World Builder")
+    world_name = st.text_input("World Name", placeholder="Enter your world name...")
+    locations = st.text_input("Locations", placeholder="Enter locations separated by commas...")
+    characters = st.text_input("Characters", placeholder="Enter characters separated by commas...")
+    if st.button("Create World"):
+        world_status = define_world(world_name, locations, characters)
+        st.text_area("World Status", value=world_status, height=100, disabled=True)
     
-    generate_story_button.click(
-        generate_story,
-        inputs=[selected_model, story_world, max_length, event],
-        outputs=generated_story,
-    )
+    st.markdown("### Generate a Story in Your World")
+    story_world = st.text_input("Enter World Name", placeholder="World name...")
+    event = st.text_input("Event", placeholder="Describe an event in the world...")
+    selected_model = st.radio("Select Model", models_options_general, index=0)
+    max_length = st.slider("Max Length", 50, 300, 150, 1, key="max_new_tokens_slider_5")
+    if st.button("Generate Story"):
+        generated_story = generate_story(selected_model, story_world, event, max_length)
+        st.text_area("Generated Story", value=generated_story, height=300, disabled=True)
 
-    gr.Markdown("Made by **AliDev.X** with ❤️")
+elif option == "Chatbot":
+    st.header("Chatbot")
+    username = st.text_input("Username", placeholder="Enter your username")
+    chat_id = st.text_input("Chat ID (optional)", placeholder="Enter chat ID or leave blank for a new chat")
+    selected_model = st.radio("Select Model", models_options_chatbot, index=0)
+    input_text = st.text_area("Your Message", placeholder="Type your message here...", height=100)
+    if st.button("Send"):
+        chat_output, chat_id, emotion_output = chatbot_response_with_emotion(username, input_text, selected_model, chat_id)
+        st.text_area("Chat History", value=chat_output, height=300, disabled=True)
+        st.text_area("Detected Emotion", value=emotion_output, height=50, disabled=True)
+    if st.button("Reset Chat"):
+        reset_chat(username)
+        st.text_area("Chat History", value="", height=300, disabled=True)
+    
+    st.markdown("### Fetch Chat IDs")
+    username = st.text_input("Username", placeholder="Enter your username", key="fetch_username")
+    if st.button("Fetch"):
+        fetch_output = chat_ids(username)
+        st.text_area("Chat IDs", value=fetch_output, height=100, disabled=True)
 
-signal.signal(signal.SIGINT, signal_handler)
+elif option == "Text Summarization":
+    st.header("Text Summarization")
+    text_input = st.text_area("Text input", placeholder="Enter your text here...", height=200)
+    max_length = st.slider("Max Length", 50, 300, 130, 1, key="max_tokens_slider_6")
+    min_length = st.slider("Min Length", 10, 100, 30, 1, key="min_tokens_slider_7")
+    selected_model = st.radio("Select Model", models_options_summarization, index=0)
+    if st.button("Summarize Text"):
+        summary_output = handle_summarization(text_input, selected_model, max_length, min_length)
+        st.text_area("Summary", value=summary_output, height=200, disabled=True)
 
-# Launch the interface
-interface.queue().launch(
-    server_port=7860,
-    show_error=True, 
-    inline=False,
-    #share=True,
-)
+st.markdown("Made by **AliDev.X** with ❤️")
