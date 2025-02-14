@@ -2,14 +2,20 @@ import gradio as gr
 from database import create_db
 from functions import *
 from functions import _generate_code
+import signal
+import sys
 
 # Supported models
 models_options_general = ['GPT2', 'GPT2-medium', 'GPT2-large', 'GPT2-medium-persian', 'GPT-Neo-125M', 'GPT2-persian' ]
 models_options_codegen = ['codegen-350M-mono', 'codegen-350M-multi']
-models_options_chatbot = ['dialoGPT', 'dialoGPT-medium', 'dialoGPT-large']
+models_options_chatbot = ['dialoGPT', 'dialoGPT-medium', 'dialoGPT-large', "Blenderbot-400M"]
 models_options_summarization = ['Bart-large-CNN', 'bert-summary']
 models_options_translation = ['T5-small']
 translation_modes = ['English-French', 'French-English', 'Romanian-German', 'German-Romanian', 'English-German']
+
+def signal_handler(sig, frame):
+    print("Interrupted by user")
+    sys.exit(0)
 
 # Create database
 create_db()
@@ -229,6 +235,8 @@ with gr.Blocks() as interface:
     )
 
     gr.Markdown("Made by **AliDev.X** with ❤️")
+
+signal.signal(signal.SIGINT, signal_handler)
 
 # Launch the interface
 interface.queue().launch(

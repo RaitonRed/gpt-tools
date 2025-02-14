@@ -1,5 +1,5 @@
 import torch
-from model import load_model_lazy, unload_model
+from model import load_model_lazy
 from generate import *
 from database import *
 import train
@@ -156,20 +156,19 @@ def chatbot_response_with_emotion(username, input_text, selected_model, chat_id=
         chat_id = str(uuid.uuid4())
     model_data = load_model_lazy(selected_model)
     emotion, confidence = analyze_emotion(input_text)
-    user_emotion = emotion
     previous_chats = fetch_chats_by_id(chat_id)
     chat_history = "\n".join([f"User: {msg}\nAI: {resp}" for msg, resp in previous_chats])
     if chat_history:
         chat_history = limit_chat_history(chat_history, max_turns=6)
-        prompt = f"[Emotion: {user_emotion}]\n{chat_history}\nUser: {input_text}\nAI:"
+        prompt = f"{chat_history}\nUser: {input_text}\nAI: Please provide a thoughtful and engaging response."
     else:
-        prompt = f"[Emotion: {user_emotion}]\nUser: {input_text}\nAI:"
+        prompt = f"User: {input_text}\nAI: Please provide a thoughtful and engaging response."
     max_new_token = 250
     full_response = generate_text(model_data, prompt, max_new_token)
     ai_response = full_response.split("AI:")[-1].strip()
     insert_chat(chat_id, username, input_text, ai_response)
     updated_history = chat_history + f"\nUser: {input_text}\nAI: {ai_response}"
-    return updated_history, chat_id, user_emotion
+    return updated_history, chat_id, emotion
 
 def handle_summarization(input_text, selected_model, max_length=130, min_length=30):
     model_data = load_model_lazy(selected_model)
@@ -191,8 +190,6 @@ def handle_summarization(input_text, selected_model, max_length=130, min_length=
         return result
     except Exception as e:
         return f"Error during summarization: {str(e)}"
-    finally:
-        unload_model(selected_model)
 
 def handle_translation(input_text, selected_model, mode, max_length):
     model_data = load_model_lazy(selected_model)
@@ -203,5 +200,3 @@ def handle_translation(input_text, selected_model, mode, max_length):
         return result
     except Exception as e:
         return f"Error during translation: {str(e)}"
-    finally:
-        unload_model(selected_model)
