@@ -20,7 +20,8 @@ model_dict = {
     "GPT2-persian": {"path": "./models/gpt2-persian", "library": GPT2LMHeadModel, "tokenizer": AutoTokenizer, "use_pipeline": True, "legacy": False},
     "Bart-large-CNN": {"path": "./models/bart-large", "library": AutoModelForSeq2SeqLM, "tokenizer": AutoTokenizer, "use_pipeline": False, "legacy": False},
     "bert-summary": {"path": "./models/bert-summary", "library": AutoModelForSeq2SeqLM, "tokenizer": AutoTokenizer, "use_pipeline": False, "legacy": False},
-    "T5-small": {"path": "./models/t5-small", "library": T5ForConditionalGeneration, "tokenizer": T5Tokenizer, "use_pipeline": False, "legacy": False}
+    "T5-small": {"path": "./models/t5-small", "library": T5ForConditionalGeneration, "tokenizer": T5Tokenizer, "use_pipeline": False, "legacy": False},
+    "Blenderbot-400M": {"path": "./models/blenderbot-400M", "library": AutoModelForSeq2SeqLM, "tokenizer": AutoTokenizer, "use_pipeline": False, "legacy": False}
 }
 
 loaded_models = {}  # کش برای مدل‌های بارگذاری‌شده
@@ -83,14 +84,14 @@ def unload_model(model_name):
     else:
         print(f"Model {model_name} was not loaded.")
 
-def unload_inactive_models(max_inactive_time=300):  # 300 ثانیه = ۵ دقیقه
+def unload_inactive_models(max_inactive_time=500):
     current_time = time.time()
     inactive_models = [model_name for model_name, model_info in loaded_models.items() if current_time - model_info["last_used"] > max_inactive_time]
     for model_name in inactive_models:
         unload_model(model_name)
 
 # زمان‌بندی تخلیه مدل‌های غیرفعال
-def schedule_unload_inactive_models(interval=300):  # هر ۵ دقیقه اجرا شود
+def schedule_unload_inactive_models(interval=500):
     def task():
         unload_inactive_models()
         threading.Timer(interval, task).start()
