@@ -159,19 +159,20 @@ def chatbot_response_with_emotion(username, input_text, selected_model, chat_id=
         chat_id = str(uuid.uuid4())
     model_data = load_model_lazy(selected_model)
     emotion, confidence = analyze_emotion(input_text)
+    user_emotion = emotion
     previous_chats = fetch_chats_by_id(chat_id)
     chat_history = "\n".join([f"User: {msg}\nAI: {resp}" for msg, resp in previous_chats])
     if chat_history:
         chat_history = limit_chat_history(chat_history, max_turns=6)
-        prompt = f"{chat_history}\nUser: {input_text}\nAI: Please provide a thoughtful and engaging response."
+        prompt = f"[Emotion: {user_emotion}]\n{chat_history}\nUser: {input_text}\nAI:"
     else:
-        prompt = f"User: {input_text}\nAI: Please provide a thoughtful and engaging response."
+        prompt = f"[Emotion: {user_emotion}]\nUser: {input_text}\nAI:"
     max_new_token = 250
     full_response = generate_text(model_data, prompt, max_new_token)
     ai_response = full_response.split("AI:")[-1].strip()
     insert_chat(chat_id, username, input_text, ai_response)
     updated_history = chat_history + f"\nUser: {input_text}\nAI: {ai_response}"
-    return updated_history, chat_id, emotion
+    return updated_history, chat_id
 
 def handle_summarization(input_text, selected_model, max_length=130, min_length=30):
     model_data = load_model_lazy(selected_model)

@@ -2,6 +2,9 @@ import streamlit as st
 from database import create_db
 from functions import *
 from functions import _generate_code
+import threading
+import uvicorn
+from api import app  # Import the FastAPI app from api.py
 
 # Supported models
 models_options_general = ['GPT2', 'GPT2-medium', 'GPT2-large', 'GPT2-medium-persian', 'GPT-Neo-125M', 'GPT2-persian']
@@ -14,19 +17,25 @@ translation_modes = ['English-French', 'French-English', 'Romanian-German', 'Ger
 # Create database
 create_db()
 
-# Streamlit App
-st.title("GPT Tools")
-st.markdown("Generate something using GPT models. Select the model and adjust the parameters for optimal results.")
+# Function to run FastAPI
+def run_fastapi():
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+
+# Start FastAPI in a separate thread
+threading.Thread(target=run_fastapi, daemon=True).start()
 
 # Sidebar for navigation
-st.sidebar.title("Navigation")
+st.sidebar.title("GPT Tools")  # عنوان اصلی در سایدبار
+st.sidebar.markdown("---")  # خط جداکننده
 option = st.sidebar.radio("Go to", [
     "Text Generator", "Multiverse Story Generator", "Interactive Story Writing", 
-    "Training", "Code Generator", "Story World Builder", "Chatbot", "Text Summarization"
+    "Training", "Code Generator", "Story World Builder", "Chatbot", 
+    "Text Summarization", "Translation", "API Documentation"  # Added Translation
 ])
 
+# نمایش عنوان بالای هر تب
 if option == "Text Generator":
-    st.header("Text Generator")
+    st.header("Text Generator")  # عنوان تب
     input_text = st.text_area("Input Text", placeholder="Enter your text here...", height=100)
     selected_model = st.radio("Select Model", models_options_general, index=0, key="text_generator_model")
     max_tokens = st.slider("Max New Tokens", 10, 900, 50, 1, key="max_new_tokens_slider_1")
@@ -35,7 +44,7 @@ if option == "Text Generator":
         st.text_area("Generated Text", value=output_text, height=200, disabled=True)
 
 elif option == "Multiverse Story Generator":
-    st.header("Multiverse Story Generator")
+    st.header("Multiverse Story Generator")  # عنوان تب
     input_text = st.text_area("Enter your story idea", placeholder="e.g. A scientist discovers a parallel universe...", height=100)
     selected_model = st.radio("Select Model for Story Generation", models_options_general, index=0, key="multiverse_story_model")
     max_length = st.slider("Max Length", 50, 300, 150, 1, key="max_new_tokens_slider_2")
@@ -44,7 +53,7 @@ elif option == "Multiverse Story Generator":
         st.text_area("Generated Worlds", value=output_text, height=300, disabled=True)
 
 elif option == "Interactive Story Writing":
-    st.header("Interactive Story Writing")
+    st.header("Interactive Story Writing")  # عنوان تب
     story_input = st.text_area("Add to Story", placeholder="Enter your part of the story...", height=100)
     story_model = st.radio("Select Model", models_options_general, index=0, key="interactive_story_model")
     story_max_length = st.slider("Max Length", 50, 300, 50, 1, key="max_new_tokens_slider_3")
@@ -56,7 +65,7 @@ elif option == "Interactive Story Writing":
         st.text_area("Story So Far", value="", height=300, disabled=True)
 
 elif option == "Training":
-    st.header("Train Model")
+    st.header("Train Model")  # عنوان تب
     train_model_selector = st.radio("Select Model for Training", models_options_general, index=0)
     train_method = st.radio("Training Method", ["Custom Text", "Database", "Dataset File", "Hugging Face Dataset"], index=0)
     dataset_name = st.text_input("Hugging Face Dataset Name", placeholder="Enter dataset name (e.g., ag_news)")
@@ -71,7 +80,7 @@ elif option == "Training":
         st.text_area("Training Status", value=train_status, height=100, disabled=True)
 
 elif option == "Code Generator":
-    st.header("Code Generator")
+    st.header("Code Generator")  # عنوان تب
     code_prompt = st.text_area("Code Prompt", placeholder="Describe your coding task, e.g., 'Write a Python function to calculate Fibonacci numbers.'", height=100)
     code_max_tokens = st.slider("Max Tokens", 10, 500, 150, 10, key="max_new_tokens_slider_4")
     selected_model = st.radio("Select model", models_options_codegen, index=0)
@@ -80,7 +89,7 @@ elif option == "Code Generator":
         st.text_area("Generated Code", value=generated_code, height=300, disabled=True)
 
 elif option == "Story World Builder":
-    st.header("Story World Builder")
+    st.header("Story World Builder")  # عنوان تب
     world_name = st.text_input("World Name", placeholder="Enter your world name...")
     locations = st.text_input("Locations", placeholder="Enter locations separated by commas...")
     characters = st.text_input("Characters", placeholder="Enter characters separated by commas...")
@@ -98,7 +107,7 @@ elif option == "Story World Builder":
         st.text_area("Generated Story", value=generated_story, height=300, disabled=True)
 
 elif option == "Chatbot":
-    st.header("Chatbot")
+    st.header("Chatbot")  # عنوان تب
     username = st.text_input("Username", placeholder="Enter your username")
     chat_id = st.text_input("Chat ID (optional)", placeholder="Enter chat ID or leave blank for a new chat")
     selected_model = st.radio("Select Model", models_options_chatbot, index=0)
@@ -106,7 +115,7 @@ elif option == "Chatbot":
     if st.button("Send"):
         chat_output, chat_id, emotion_output = chatbot_response_with_emotion(username, input_text, selected_model, chat_id)
         st.text_area("Chat History", value=chat_output, height=300, disabled=True)
-        st.text_area("Detected Emotion", value=emotion_output, height=50, disabled=True)
+        #st.text_area("Detected Emotion", value=emotion_output, height=50, disabled=True)
     if st.button("Reset Chat"):
         reset_chat(username)
         st.text_area("Chat History", value="", height=300, disabled=True)
@@ -118,7 +127,7 @@ elif option == "Chatbot":
         st.text_area("Chat IDs", value=fetch_output, height=100, disabled=True)
 
 elif option == "Text Summarization":
-    st.header("Text Summarization")
+    st.header("Text Summarization")  # عنوان تب
     text_input = st.text_area("Text input", placeholder="Enter your text here...", height=200)
     max_length = st.slider("Max Length", 50, 300, 130, 1, key="max_tokens_slider_6")
     min_length = st.slider("Min Length", 10, 100, 30, 1, key="min_tokens_slider_7")
@@ -127,4 +136,30 @@ elif option == "Text Summarization":
         summary_output = handle_summarization(text_input, selected_model, max_length, min_length)
         st.text_area("Summary", value=summary_output, height=200, disabled=True)
 
-st.markdown("Made by **AliDev.X** with ❤️")
+elif option == "Translation":
+    st.header("Translation")
+    text_input = st.text_area("Text to translate", placeholder="Enter text to translate...", height=100)
+    selected_model = st.radio("Select Model", models_options_translation, index=0)
+    mode = st.selectbox("Translation Mode", translation_modes)
+    max_length = st.slider("Max Length", 50, 300, 150, 1, key="max_tokens_slider_8")
+    if st.button("Translate"):
+        translated_output = handle_translation(text_input, selected_model, mode, max_length)
+        st.text_area("Translated Text", value=translated_output, height=200, disabled=True)
+
+elif option == "API Documentation":
+    st.header("API Documentation")  # عنوان تب
+    st.markdown("""
+    ### API Endpoints
+    You can access the API documentation using the following links:
+    - **Swagger UI**: [http://localhost:8000/docs](http://localhost:8000/docs)
+    - **ReDoc**: [http://localhost:8000/redoc](http://localhost:8000/redoc)
+    """)
+    st.markdown("""
+    ### Example Requests
+    - **Generate Text**: `POST /generate-text`
+    - **Generate Code**: `POST /generate-code`
+    - **Chatbot**: `POST /chatbot`
+    """)
+
+st.markdown("---")
+st.markdown("Made by **Shell255** with ❤️")

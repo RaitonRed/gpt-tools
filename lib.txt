@@ -1,6 +1,6 @@
 transformers
 torch
-gradio
+streamlit
 datasets
 numpy
 Pillow
