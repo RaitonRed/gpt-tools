@@ -1,5 +1,6 @@
 transformers
 torch
+torchaudio
 streamlit
 datasets
 numpy
@@ -14,3 +15,6 @@ safetensors
 diffusers
 jax
 SentencePiece
+uvicorn
+fastapi
+cefpython3

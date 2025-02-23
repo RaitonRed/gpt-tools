@@ -1,10 +1,10 @@
-import torch
-from model import load_model_lazy
 from generate import *
 from database import *
-import train
+from train import *
 import uuid
 import logging
+import uvicorn
+from api import app
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -76,27 +76,12 @@ def verify_and_train_combined(selected_model, train_method, epochs, batch_size, 
     if password != train_pass:
         return "Error: Incorrect password. Training not started."
     if train_method == "Custom Text" and custom_text.strip():
-        train.train_model_with_text(selected_model, custom_text, epochs, batch_size)
+        train_model_with_text(selected_model, custom_text, epochs, batch_size)
         return f"Training completed for model: {selected_model} using custom text."
     elif train_method == "Database":
-        train.train_model_with_database(selected_model, epochs, batch_size)
+        train_model_with_database(selected_model, epochs, batch_size)
         clear_database()
         return f"Training completed for model: {selected_model} using database. Database cleared."
-    elif train_method == "Dataset File" and dataset_file is not None:
-        try:
-            dataset_path = dataset_file.name
-            train.train_model_with_dataset(selected_model, epochs, batch_size, dataset_path)
-            return f"Training completed for model: {selected_model} using uploaded dataset."
-        except Exception as e:
-            return f"Error during training with dataset: {str(e)}"
-    elif train_method == "Hugging Face Dataset" and dataset_name.strip():
-        try:
-            train.train_model_with_hf_dataset(selected_model, epochs, batch_size, dataset_name, split=split_name.strip())
-            return f"Training completed for model: {selected_model} using Hugging Face dataset {dataset_name}."
-        except Exception as e:
-            return f"Error during training with Hugging Face dataset: {str(e)}"
-    else:
-        return "Error: Invalid input for training. Please check your selections."
 
 def limit_chat_history(chat_history, max_turns=6):
     turns = chat_history.split("\n")
@@ -204,3 +189,19 @@ def handle_translation(input_text, selected_model, mode, max_length):
         return result
     except Exception as e:
         return f"Error during translation: {str(e)}"
+
+def run_fastapi():
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+
+def generate_entertainment_content(topic, content_type, model, max_length=500):
+    if content_type == "joke":
+        prompt = f"Generate a funny joke about: {topic}"
+    elif content_type == "story":
+        prompt = f"Generate a short story about: {topic}"
+    elif content_type == "riddle":
+        prompt = f"Generate a riddle about: {topic}"
+    elif content_type == "poem":
+        prompt = f"Generate a poem about: {topic}"
+    else:
+        return "Invalid content type"
+    return generate(prompt, model, max_length)

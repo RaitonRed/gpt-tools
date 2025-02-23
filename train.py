@@ -39,6 +39,9 @@ def train_model_with_text(selected_model, custom_text, epochs, batch_size):
     _train_model(model, tokenizer, dataloader, epochs, selected_model, "custom_text")
     unload_model(selected_model)  # تخلیه مدل پس از استفاده
 
+def train_model_with_database(selected_model, epochs, batch_size):
+    print("nothing to do")
+
 def _train_model(model, tokenizer, dataloader, epochs, model_name, method):
     """
     منطق مشترک آموزش مدل.
