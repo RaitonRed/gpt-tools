@@ -1,13 +1,20 @@
+import sys
 from generate import *
 from database import *
 from train import *
+from model import load_model_lazy
 import uuid
 import logging
 import uvicorn
 from api import app
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+import torch
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+executor = ThreadPoolExecutor()
 
 train_pass = '6818'
 
@@ -19,13 +26,19 @@ def _generate_code(code_prompt, max_tokens, selected_model):
     generated_code = generate_code(model_data, code_prompt, max_tokens)
     return generated_code
 
-def generate(input_text, selected_model, max_new_token):
+async def generate(input_text, selected_model, max_new_token):
     if not input_text.strip():
         return "Error: Input text cannot be empty."
-    
-    model_data = load_model_lazy(selected_model)
-    generated_text = generate_text(model_data, input_text, max_new_token)
-    insert_into_db(input_text, selected_model)
+
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+    model_data = await loop.run_in_executor(executor, load_model_lazy, selected_model)
+    generated_text = await loop.run_in_executor(executor, generate_text, model_data, input_text, max_new_token)
+    await loop.run_in_executor(executor, insert_into_db, input_text, selected_model)
     return generated_text
 
 def define_world(world_name, locations, characters):
@@ -34,23 +47,23 @@ def define_world(world_name, locations, characters):
     world_data["characters"] = characters.split(", ")
     return f"World '{world_name}' created with locations: {locations} and characters: {characters}"
 
-def generate_story(model, world_name, event, max_length):
+async def generate_story(model, world_name, event, max_length):
     if not world_name or not world_data.get("world_name"):
         return "Error: Please define a world first."
     if world_name != world_data["world_name"]:
         return f"Error: World '{world_name}' not found. Define it first."
     prompt = f"In the world of {world_name}, {event}. Locations: {', '.join(world_data['locations'])}. Characters: {', '.join(world_data['characters'])}."
-    return generate(prompt, model, max_length)
+    return await asyncio.run(generate(prompt, model, max_length))
 
 # Story Mode
 story = []
 
-def interactive_story(input_text, selected_model, max_length):
+async def interactive_story(input_text, selected_model, max_length):
     global story
     if input_text.strip():
         story.append(input_text)
     current_text = " ".join(story)
-    generated_text = generate(current_text, selected_model, max_length)
+    generated_text = await asyncio.run(generate(current_text, selected_model, max_length))
     story.append(generated_text)
     return current_text + "\n\n" + generated_text
 
@@ -59,7 +72,7 @@ def reset_story():
     story = []
     return ""
 
-def generate_multiverse(input_text, selected_model, max_new_tokens, num_worlds=3):
+async def generate_multiverse(input_text, selected_model, max_new_tokens, num_worlds=3):
     worlds = []
     for i in range(num_worlds):
         world_intro = f"World {i + 1}: {input_text} "
@@ -69,19 +82,15 @@ def generate_multiverse(input_text, selected_model, max_new_tokens, num_worlds=3
             world_intro += "In this world, time splits into different periods!"
         elif i == 2:
             world_intro += "This world faces a strange physical anomaly that changes everything!"
-        worlds.append(generate(world_intro, selected_model, max_new_tokens))
+        worlds.append(await asyncio.run(generate(world_intro, selected_model, max_new_tokens)))
     return "\n\n".join(worlds)
 
-def verify_and_train_combined(selected_model, train_method, epochs, batch_size, password, custom_text, dataset_file, dataset_name, split_name):
+def verify_and_train_combined(selected_model, train_method, epochs, batch_size, password, custom_text):
     if password != train_pass:
         return "Error: Incorrect password. Training not started."
     if train_method == "Custom Text" and custom_text.strip():
         train_model_with_text(selected_model, custom_text, epochs, batch_size)
         return f"Training completed for model: {selected_model} using custom text."
-    elif train_method == "Database":
-        train_model_with_database(selected_model, epochs, batch_size)
-        clear_database()
-        return f"Training completed for model: {selected_model} using database. Database cleared."
 
 def limit_chat_history(chat_history, max_turns=6):
     turns = chat_history.split("\n")
@@ -94,7 +103,6 @@ def chatbot_response(username, input_text, selected_model, chat_id=None):
         return "Error: Please enter a username.", "", str(uuid.uuid4())
     if not chat_id or chat_id.strip() == "":
         chat_id = str(uuid.uuid4())
-    model_data = load_model_lazy(selected_model)
     previous_chats = fetch_chats_by_id(chat_id)
     chat_history = "\n".join([f"User: {msg}\nAI: {resp}" for msg, resp in previous_chats])
     if chat_history:
@@ -103,7 +111,7 @@ def chatbot_response(username, input_text, selected_model, chat_id=None):
     else:
         prompt = f"User: {input_text}\nAI:"
     max_new_token = 250
-    full_response = generate_text(model_data, prompt, max_new_token)
+    full_response = asyncio.run(generate(prompt, selected_model, max_new_token))
     ai_response = full_response.split("AI:")[-1].strip()
     insert_chat(chat_id, username, input_text, ai_response)
     updated_history = chat_history + f"\nUser: {input_text}\nAI: {ai_response}"
@@ -159,7 +167,7 @@ def chatbot_response_with_emotion(username, input_text, selected_model, chat_id=
     updated_history = chat_history + f"\nUser: {input_text}\nAI: {ai_response}"
     return updated_history, chat_id
 
-def handle_summarization(input_text, selected_model, max_length=130, min_length=30):
+async def handle_summarization(input_text, selected_model, max_length=130, min_length=30):
     model_data = load_model_lazy(selected_model)
     if model_data['model'] is None or model_data['tokenizer'] is None:
         return "Error: Model or tokenizer not loaded correctly!"
@@ -180,7 +188,7 @@ def handle_summarization(input_text, selected_model, max_length=130, min_length=
     except Exception as e:
         return f"Error during summarization: {str(e)}"
 
-def handle_translation(input_text, selected_model, mode, max_length):
+async def handle_translation(input_text, selected_model, mode, max_length):
     model_data = load_model_lazy(selected_model)
     if model_data['model'] is None or model_data['tokenizer'] is None:
         return "Error: Model or tokenizer not loaded correctly!"
@@ -191,9 +199,11 @@ def handle_translation(input_text, selected_model, mode, max_length):
         return f"Error during translation: {str(e)}"
 
 def run_fastapi():
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    config = uvicorn.Config(app, host="0.0.0.0", port=8000)
+    server = uvicorn.Server(config)
+    asyncio.run(server.serve())
 
-def generate_entertainment_content(topic, content_type, model, max_length=500):
+async def generate_entertainment_content(topic, content_type, model, max_length=500):
     if content_type == "joke":
         prompt = f"Generate a funny joke about: {topic}"
     elif content_type == "story":
@@ -204,4 +214,8 @@ def generate_entertainment_content(topic, content_type, model, max_length=500):
         prompt = f"Generate a poem about: {topic}"
     else:
         return "Invalid content type"
-    return generate(prompt, model, max_length)
+    return await generate(prompt, model, max_length)
+
+def signal_handler(_, __):
+    print("\nKeyboard Interruption. Shutting down application")
+    sys.exit(0)

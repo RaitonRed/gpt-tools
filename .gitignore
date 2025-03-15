@@ -7,7 +7,6 @@ blob_storage/
 webrtc_event_logs/
 
 lab/
-.idea/
 # C extensions
 *.so
 

@@ -1,10 +1,17 @@
 import sqlite3
 
-# مسیر پایگاه داده
+# Database path
 DATABASE_PATH = 'database.db'
 
-# ایجاد یا بازنشانی جداول پایگاه داده
+global conn
+
 def create_db():
+    """
+    Create or reset the database tables.
+    """
+
+    global conn
+
     conn = sqlite3.connect(DATABASE_PATH)
     c = conn.cursor()
     c.execute("""
@@ -26,8 +33,13 @@ def create_db():
     conn.commit()
     conn.close()
 
-# درج چت در جدول chats
 def insert_chat(chat_id, username, user_message, ai_response):
+    """
+    Insert a chat into the chats table.
+    """
+
+    global conn
+
     try:
         conn = sqlite3.connect(DATABASE_PATH)
         cursor = conn.cursor()
@@ -41,8 +53,13 @@ def insert_chat(chat_id, username, user_message, ai_response):
     finally:
         conn.close()
 
-# درج داده در جدول inputs
 def insert_into_db(input_text, selected_model):
+    """
+    Insert data into the inputs table.
+    """
+
+    global conn
+
     try:
         conn = sqlite3.connect(DATABASE_PATH)
         c = conn.cursor()
@@ -56,8 +73,13 @@ def insert_into_db(input_text, selected_model):
     finally:
         conn.close()
 
-# پاک کردن داده‌های جدول inputs
 def clear_database():
+    """
+    Clear all data from the inputs table.
+    """
+
+    global conn
+
     try:
         conn = sqlite3.connect(DATABASE_PATH)
         c = conn.cursor()
@@ -68,8 +90,13 @@ def clear_database():
     finally:
         conn.close()
 
-# بازیابی تمام ورودی‌ها از جدول inputs
 def fetch_all_inputs():
+    """
+    Fetch all inputs from the inputs table.
+    """
+
+    global conn
+
     try:
         conn = sqlite3.connect(DATABASE_PATH)
         c = conn.cursor()
@@ -82,8 +109,13 @@ def fetch_all_inputs():
     finally:
         conn.close()
 
-# بازیابی پیام‌ها و پاسخ‌های مرتبط با یک chat_id
 def fetch_chats_by_id(chat_id):
+    """
+    Fetch messages and responses associated with a chat_id.
+    """
+
+    global conn
+
     try:
         conn = sqlite3.connect(DATABASE_PATH)
         cursor = conn.cursor()
@@ -99,8 +131,13 @@ def fetch_chats_by_id(chat_id):
     finally:
         conn.close()
 
-# بازیابی chat_id ها برای یک کاربر خاص
 def fetch_ids_by_user(username):
+    """
+    Fetch chat IDs for a specific user.
+    """
+
+    global conn
+
     try:
         conn = sqlite3.connect(DATABASE_PATH)
         cursor = conn.cursor()
@@ -116,8 +153,13 @@ def fetch_ids_by_user(username):
     finally:
         conn.close()
 
-# حذف چت‌های مرتبط با یک کاربر خاص
 def clear_chats_by_username(username):
+    """
+    Delete chats associated with a specific user.
+    """
+
+    global conn
+
     try:
         conn = sqlite3.connect(DATABASE_PATH)
         cursor = conn.cursor()

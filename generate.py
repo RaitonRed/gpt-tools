@@ -2,25 +2,24 @@ import torch
 
 seed = 42
 
+
 def generate_text(model_data, input_text, max_new_token, temperature=0.7, top_p=0.9, top_k=50):
     """
     Generate text using the given model and tokenizer with sampling (do_sample=True) and top-p (nucleus sampling).
     """
     if "pipeline" in model_data:
-        # اگر مدل از pipeline پشتیبانی می‌کند
         model_pipeline = model_data["pipeline"]
         generated_text = model_pipeline(
             input_text,
             max_length=max_new_token,
-            do_sample=True,  # فعال کردن نمونه‌گیری تصادفی
-            temperature=temperature,  # کنترل میزان خلاقیت
-            top_p=top_p, # نمونه‌گیری هسته‌ای (nucleus sampling)
+            do_sample=True,
+            temperature=temperature,
+            top_p=top_p,  # nucleus sampling
             top_k=top_k,
-            truncation=True  # فعال کردن truncation
+            truncation=True
         )[0]["generated_text"]
         return generated_text
     else:
-        # روش قدیمی برای مدل‌هایی که از pipeline پشتیبانی نمی‌کنند
         model = model_data["model"]
         tokenizer = model_data["tokenizer"]
 
@@ -34,7 +33,7 @@ def generate_text(model_data, input_text, max_new_token, temperature=0.7, top_p=
             input_text,
             return_tensors="pt",
             padding=True,
-            truncation=True,  # فعال کردن truncation
+            truncation=True,
             max_length=512
         )
         input_ids = encodings.input_ids
@@ -44,16 +43,17 @@ def generate_text(model_data, input_text, max_new_token, temperature=0.7, top_p=
             input_ids=input_ids,
             attention_mask=attention_mask,
             max_new_tokens=max_new_token,
-            do_sample=True,  # فعال کردن نمونه‌گیری تصادفی
-            temperature=temperature,  # کنترل میزان خلاقیت
-            top_p=top_p,  # نمونه‌گیری هسته‌ای (nucleus sampling)
+            do_sample=True,
+            temperature=temperature,
+            top_p=top_p,  # nucleus sampling
             top_k=top_k,
             pad_token_id=tokenizer.eos_token_id,
-            repetition_penalty=1.2,  # جلوگیری از تکرار
-            no_repeat_ngram_size=3,  # جلوگیری از تکرار n-gram
+            repetition_penalty=1.2,
+            no_repeat_ngram_size=3,
         )
 
         return tokenizer.decode(outputs[0], skip_special_tokens=True)
+
 
 def generate_code(model_data, prompt, max_new_tokens):
     """
@@ -62,28 +62,25 @@ def generate_code(model_data, prompt, max_new_tokens):
     model = model_data["model"]
     tokenizer = model_data["tokenizer"]
 
-    # تنظیم seed برای خروجی ثابت
     torch.manual_seed(0)
     torch.cuda.manual_seed_all(0)
 
-    # توکنایز کردن ورودی
     input_ids = tokenizer.encode(prompt, return_tensors="pt")
 
-    # ایجاد attention mask
     attention_mask = torch.ones(input_ids.shape, device=input_ids.device)
 
-    # تولید کد
     outputs = model.generate(
         input_ids=input_ids,
         attention_mask=attention_mask,
         max_new_tokens=max_new_tokens,
-        do_sample=False,  # فعال کردن نمونه‌گیری تصادفی
+        do_sample=False,
         pad_token_id=tokenizer.eos_token_id,
-        repetition_penalty=1.2,  # جلوگیری از تکرار
-        no_repeat_ngram_size=3,  # جلوگیری از تکرار n-gram
+        repetition_penalty=1.2,
+        no_repeat_ngram_size=3,
     )
-    
+
     return tokenizer.decode(outputs[0], skip_special_tokens=True)
+
 
 def summarize_text(input_text, model, tokenizer, max_length=130, min_length=30):
     """
@@ -109,9 +106,12 @@ def summarize_text(input_text, model, tokenizer, max_length=130, min_length=30):
         print(f"Error during summarization: {str(e)}")
         return f"Error during summarization: {str(e)}"
 
+
 def translate_text(input_text, model, tokenizer, max_length, mode):
+    """
+    Translate text between different languages using the provided model and tokenizer.
+    """
     try:
-        # اضافه کردن پیش‌وند مناسب بر اساس حالت ترجمه
         if mode == "English-French":
             prompt = f"translate English to French: {input_text}"
         elif mode == "French-English":
@@ -125,16 +125,44 @@ def translate_text(input_text, model, tokenizer, max_length, mode):
         else:
             return "Error: Invalid translation mode."
 
-        # توکن‌سازی متن ورودی
         input_ids = tokenizer.encode(prompt, return_tensors="pt")
 
-        # تولید ترجمه با مدل
         outputs = model.generate(input_ids, max_length=max_length)
 
-        # تبدیل توکن‌های خروجی به متن
         translated_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
 
         return translated_text
     except Exception as e:
         print(f"Error during translation: {str(e)}")
         return f"Error during translation: {str(e)}"
+
+
+def generate_poem(model_data, input_text, max_new_token, temperature=1.0, top_p=0.9, top_k=0):
+    """
+    Generate a poem using the provided model and tokenizer.
+    """
+    model = model_data["model"]
+    tokenizer = model_data["tokenizer"]
+
+    input_ids = tokenizer.encode(input_text, return_tensors='tf')
+
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
+
+    attention_mask = torch.ones(input_ids.shape, device=input_ids.device)
+
+    sample_outputs = model.generate(
+        input_ids,
+        do_sample=True,
+        max_length=max_new_token,
+        attention_mask=attention_mask,
+        top_k=top_k,
+        top_p=top_p,
+        temperature=temperature,
+        repetition_penalty=1.2,
+        num_return_sequences=3
+    )
+
+    output = tokenizer.decode(sample_outputs[0], skip_special_tokens=True)
+
+    return output
