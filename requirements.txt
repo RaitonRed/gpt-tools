@@ -17,4 +17,7 @@ jax
 SentencePiece
 uvicorn
 fastapi
-cefpython3
+hacking
+httpx
+aiosqlite
+cachetools
