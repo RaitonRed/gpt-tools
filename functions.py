@@ -1,7 +1,6 @@
 import sys
 from generate import *
 from database import *
-from train import *
 from model import load_model_lazy
 import uuid
 import logging
@@ -15,8 +14,6 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 executor = ThreadPoolExecutor()
-
-train_pass = '6818'
 
 # AI-Powered Story World Builder Functions
 world_data = {}

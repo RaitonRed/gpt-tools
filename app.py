@@ -2,7 +2,9 @@ import threading
 import streamlit as st
 from functions import *
 from functions import _generate_code
+import nest_asyncio
 import asyncio
+from database import conn
 
 # Supported models
 models_options_general = ['GPT2', 'GPT2-medium', 'GPT2-large', 'GPT2-medium-persian', 'GPT-Neo-125M', 'GPT2-persian']
@@ -13,6 +15,9 @@ models_options_chatbot = ['dialoGPT', 'dialoGPT-medium', 'dialoGPT-large', 'Blen
 models_options_summarization = ['Bart-large-CNN', 'bert-summary']
 models_options_translation = ['T5-small']
 translation_modes = ['English-French', 'French-English', 'Romanian-German', 'German-Romanian', 'English-German']
+
+nest_asyncio.apply()
+
 
 async def generate_and_display_entertainment(c_topic, c_type, c_selected_model, c_max_length):
     result = await generate_entertainment_content(c_topic, c_type, c_selected_model, c_max_length)
@@ -278,4 +283,6 @@ try:
 
 except KeyboardInterrupt:
     print("\nKeyboard Interruption. Shutting down application")
+    print("Closing Database")
+    conn.close()
     sys.exit(0)
