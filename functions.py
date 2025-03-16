@@ -1,7 +1,6 @@
 import sys
 from generate import *
 from database import *
-from train import *
 from model import load_model_lazy
 import uuid
 import logging
@@ -10,13 +9,12 @@ from api import app
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 import torch
+from ollama import chat
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 executor = ThreadPoolExecutor()
-
-train_pass = '6818'
 
 # AI-Powered Story World Builder Functions
 world_data = {}
@@ -84,13 +82,6 @@ async def generate_multiverse(input_text, selected_model, max_new_tokens, num_wo
             world_intro += "This world faces a strange physical anomaly that changes everything!"
         worlds.append(await asyncio.run(generate(world_intro, selected_model, max_new_tokens)))
     return "\n\n".join(worlds)
-
-def verify_and_train_combined(selected_model, train_method, epochs, batch_size, password, custom_text):
-    if password != train_pass:
-        return "Error: Incorrect password. Training not started."
-    if train_method == "Custom Text" and custom_text.strip():
-        train_model_with_text(selected_model, custom_text, epochs, batch_size)
-        return f"Training completed for model: {selected_model} using custom text."
 
 def limit_chat_history(chat_history, max_turns=6):
     turns = chat_history.split("\n")
@@ -219,3 +210,21 @@ async def generate_entertainment_content(topic, content_type, model, max_length=
 def signal_handler(_, __):
     print("\nKeyboard Interruption. Shutting down application")
     sys.exit(0)
+    
+async def handle_deepseek_message(prompt, selected_model):
+    """
+    Generate a response using the deepseek-r1:1.5b model with streaming.
+    """
+    if selected_model == "DeepSeek R1 (1.5B)":
+        model = "deepseek-r1:1.5b"
+    else:
+        return "Model not found!"
+
+    try:
+        stream = chat(model=model, messages=[{'role': 'user', 'content': prompt}], stream=True)
+        response = ""
+        for chunk in stream:
+            response += chunk['message']['content']
+            yield response  # Stream the response incrementally
+    except Exception as e:
+        yield f"Error: {str(e)}"
