@@ -1,40 +1,25 @@
 import os
+from importlib import import_module
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-# لیست مدل‌ها با مسیر ذخیره مشخص‌شده
-MODEL_LIST = {
-    "gpt2": {"path": "openai-community/gpt2", "save_dir": "./models/gpt2"},
-    "gpt2-medium": {"path": "openai-community/gpt2-medium", "save_dir": "./models/gpt2-medium"},
-    "gpt2-persian": {"path": "flax-community/gpt2-medium-persian", "save_dir": "./models/gpt2-medium-persian"},
-    "gpt2-large": {"path": "openai-community/gpt2-large", "save_dir": "./models/gpt2-large"},
-    "codegen": {"path": "Salesforce/codegen-350M-mono", "save_dir": "./models/codegen"},
-    "dialogpt": {"path": "microsoft/DialoGPT-small", "save_dir": "./models/dialogpt"},
-    "dialogpt-medium": {"path": "microsoft/DialoGPT-medium", "save_dir": "./models/dialogpt-medium"},
-    "dialogpt-large": {"path": "microsoft/DialoGPT-large", "save_dir": "./models/dialogpt-large"}
-}
-
-def download_and_save_models():
-    """
-    دانلود و ذخیره تمام مدل‌ها در مسیرهای مشخص‌شده.
-    """
-    for model_name, model_info in MODEL_LIST.items():
-        model_path = model_info["path"]  # مسیر مدل در Hugging Face
-        save_dir = model_info["save_dir"]  # مسیر ذخیره مدل
+def download_model(model_name, model_info):
+    model_class = model_info["library"]
+    tokenizer_class = model_info["tokenizer"]
+    
+    save_dir = model_info["path"]
+    hf_path = model_info.get("hf_path", model_info["path"])
+    
+    print(f"Downloading {model_name} from Hugging Face...")
+    os.makedirs(save_dir, exist_ok=True)
+    
+    try:
+        model = model_class.from_pretrained(hf_path)
+        tokenizer = tokenizer_class.from_pretrained(hf_path)
         
-        print(f"Downloading and saving model: {model_name} to folder: {save_dir}")
+        model.save_pretrained(save_dir)
+        tokenizer.save_pretrained(save_dir)
+        print(f"Model {model_name} saved to {save_dir}")
         
-        if not os.path.exists(save_dir):  # بررسی اینکه آیا فولدر ذخیره وجود دارد یا نه
-            os.makedirs(save_dir, exist_ok=True)
-            
-            # دانلود و ذخیره مدل
-            model = AutoModelForCausalLM.from_pretrained(model_path)
-            tokenizer = AutoTokenizer.from_pretrained(model_path)
-            model.save_pretrained(save_dir)
-            tokenizer.save_pretrained(save_dir)
-            
-            print(f"Model {model_name} saved to {save_dir}")
-        else:
-            print(f"Model {model_name} already exists in {save_dir}")
-
-if __name__ == "__main__":
-    download_and_save_models()
+    except Exception as e:
+        print(f"Error downloading {model_name}: {str(e)}")
+        raise
