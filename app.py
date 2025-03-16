@@ -28,7 +28,7 @@ try:
     st.sidebar.title("GPT Tools")
     option = st.sidebar.radio("Navigation", [
         "Text Generator", "Multiverse Story Generator", "Interactive Story Writing",
-        "Training", "Code Generator", "Story World Builder", "Chatbot",
+        "Code Generator", "Story World Builder", "Chatbot",
         "Text Summarization", "Translation", "Entertainment Content Generator", "Help", "API Documentation"
     ])
 
@@ -67,22 +67,6 @@ try:
         if st.button("Reset Story"):
             reset_story()
             st.text_area("Story So Far", value="", height=300, disabled=True)
-
-    # Training
-    elif option == "Training":
-        st.header("Train Model")
-        train_model_selector = st.radio("Select Model for Training", models_options_general, index=0)
-        train_method = st.radio("Training Method", ["Custom Text", "Database", "Dataset File", "Hugging Face Dataset"], index=0)
-        dataset_name = st.text_input("Hugging Face Dataset Name", placeholder="Enter dataset name (e.g., ag_news)")
-        split_name = st.text_input("Dataset Split", placeholder="e.g., train, test, validation")
-        epochs = st.slider("Epochs", 1, 100, 10, 1, key="epochs_slider")
-        batch_size = st.slider("Batch Size", 1, 100, 8, 1, key="batch_size_slider")
-        password = st.text_input("Enter Training Password", placeholder="Enter password", type="password")
-        custom_text = st.text_area("Custom Text (optional)", placeholder="Enter custom text for training...", height=100)
-        dataset_file = st.file_uploader("Upload Dataset", type=[".parquet", ".csv", ".json", ".txt"])
-        if st.button("Train Model"):
-            train_status = verify_and_train_combined(train_model_selector, train_method, epochs, batch_size, password, custom_text)
-            st.text_area("Training Status", value=train_status, height=100, disabled=True)
 
     # Code Generator
     elif option == "Code Generator":

@@ -85,13 +85,6 @@ async def generate_multiverse(input_text, selected_model, max_new_tokens, num_wo
         worlds.append(await asyncio.run(generate(world_intro, selected_model, max_new_tokens)))
     return "\n\n".join(worlds)
 
-def verify_and_train_combined(selected_model, train_method, epochs, batch_size, password, custom_text):
-    if password != train_pass:
-        return "Error: Incorrect password. Training not started."
-    if train_method == "Custom Text" and custom_text.strip():
-        train_model_with_text(selected_model, custom_text, epochs, batch_size)
-        return f"Training completed for model: {selected_model} using custom text."
-
 def limit_chat_history(chat_history, max_turns=6):
     turns = chat_history.split("\n")
     if len(turns) > max_turns * 2:
