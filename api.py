@@ -9,7 +9,6 @@ app = FastAPI(
     version="1.0.0",
 )
 
-
 class TextGenerationRequest(BaseModel):
     input_text: str
     selected_model: str
