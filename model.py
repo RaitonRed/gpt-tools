@@ -3,13 +3,14 @@ import gc
 import time
 import threading
 from cachetools import cached, LRUCache
-from transformers import AutoModelForCausalLM, AutoTokenizer, GPT2LMHeadModel, GPT2Tokenizer, pipeline, AutoModelForSequenceClassification, AutoModelForSeq2SeqLM, T5Tokenizer, T5ForConditionalGeneration
+from transformers import AutoModelForCausalLM, AutoTokenizer, GPT2LMHeadModel, GPT2Tokenizer, pipeline, AutoModelForSequenceClassification, AutoModelForSeq2SeqLM, T5Tokenizer, T5ForConditionalGeneration, TFGPT2LMHeadModel
 
 # Dictionary of models and their paths
 model_dict = {
     "GPT2": {"path": "./models/gpt2", "library": GPT2LMHeadModel, "tokenizer": GPT2Tokenizer, "use_pipeline": False, "legacy": False},
     "GPT2-medium": {"path": "./models/gpt2-medium", "library": GPT2LMHeadModel, "tokenizer": GPT2Tokenizer, "use_pipeline": False, "legacy": False},
     "GPT2-large": {"path": "./models/gpt2-large", "library": AutoModelForCausalLM, "tokenizer": AutoTokenizer, "use_pipeline": False, "legacy": False},
+    "GPT2-poet": {"path": "./models/gpt2-poet", "library": TFGPT2LMHeadModel, "tokenizer": GPT2Tokenizer, "use_pipeline": False, "legacy": False},
     "GPT2-medium-persian": {"path": "./models/gpt2-medium-persian", "library": GPT2LMHeadModel, "tokenizer": AutoTokenizer, "use_pipeline": False, "legacy": False},
     "codegen-350M-mono": {"path": "./models/codegen-350M-mono", "library": AutoModelForCausalLM, "tokenizer": AutoTokenizer, "use_pipeline": False, "legacy": False},
     "codegen-350M-multi": {"path": "./models/codegen-350M-multi", "library": AutoModelForCausalLM, "tokenizer": AutoTokenizer, "use_pipeline": False, "legacy": False},
@@ -22,8 +23,7 @@ model_dict = {
     "Bart-large-CNN": {"path": "./models/bart-large", "library": AutoModelForSeq2SeqLM, "tokenizer": AutoTokenizer, "use_pipeline": False, "legacy": False},
     "bert-summary": {"path": "./models/bert-summary", "library": AutoModelForSeq2SeqLM, "tokenizer": AutoTokenizer, "use_pipeline": False, "legacy": False},
     "T5-small": {"path": "./models/t5-small", "library": T5ForConditionalGeneration, "tokenizer": T5Tokenizer, "use_pipeline": False, "legacy": False},
-    "Blenderbot-400M": {"path": "./models/blenderbot-400M", "library": AutoModelForSeq2SeqLM, "tokenizer": AutoTokenizer, "use_pipeline": False, "legacy": False},
-    "DeepSeek R1": {"path": "./models/DeepSeek R1", "library": AutoModelForCausalLM, "tokenizer": AutoTokenizer, "use_pipeline": True, "legacy": False}
+    "Blenderbot-400M": {"path": "./models/blenderbot-400M", "library": AutoModelForSeq2SeqLM, "tokenizer": AutoTokenizer, "use_pipeline": False, "legacy": False}
 }
 
 # Create an LRU cache for models with a maximum size of 5
@@ -45,8 +45,6 @@ def load_model_lazy(model_name):
     if model_info.get("use_pipeline", False):
         if model_name == "bert-emotion":
             model_pipeline = pipeline("text-classification", model=model_info["path"], truncation=True)
-        elif model_name == "DeepSeek R1":
-            model_pipeline = pipeline("text-generation", model=model_info["path"])
         else:
             print(f"Using pipeline for model {model_name}")
             model_pipeline = pipeline(

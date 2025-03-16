@@ -21,4 +21,3 @@ httpx
 aiosqlite
 cachetools
 pydantic~=2.10.6
-ollama

@@ -12,7 +12,6 @@ models_options_codegen = ['codegen-350M-mono', 'codegen-350M-multi']
 models_options_chatbot = ['dialoGPT', 'dialoGPT-medium', 'dialoGPT-large', 'Blenderbot-400']
 models_options_summarization = ['Bart-large-CNN', 'bert-summary']
 models_options_translation = ['T5-small']
-models_options_deepseek = ['DeepSeek R1 (1.5B)']
 translation_modes = ['English-French', 'French-English', 'Romanian-German', 'German-Romanian', 'English-German']
 
 async def generate_and_display_entertainment(c_topic, c_type, c_selected_model, c_max_length):
@@ -30,7 +29,7 @@ try:
     option = st.sidebar.radio("Navigation", [
         "Text Generator", "Multiverse Story Generator", "Interactive Story Writing",
         "Training", "Code Generator", "Story World Builder", "Chatbot",
-        "Text Summarization", "Translation", "Entertainment Content Generator", "DeepSeek", "Help", "API Documentation"
+        "Text Summarization", "Translation", "Entertainment Content Generator", "Help", "API Documentation"
     ])
 
     st.sidebar.markdown("---")
@@ -68,6 +67,22 @@ try:
         if st.button("Reset Story"):
             reset_story()
             st.text_area("Story So Far", value="", height=300, disabled=True)
+
+    # Training
+    elif option == "Training":
+        st.header("Train Model")
+        train_model_selector = st.radio("Select Model for Training", models_options_general, index=0)
+        train_method = st.radio("Training Method", ["Custom Text", "Database", "Dataset File", "Hugging Face Dataset"], index=0)
+        dataset_name = st.text_input("Hugging Face Dataset Name", placeholder="Enter dataset name (e.g., ag_news)")
+        split_name = st.text_input("Dataset Split", placeholder="e.g., train, test, validation")
+        epochs = st.slider("Epochs", 1, 100, 10, 1, key="epochs_slider")
+        batch_size = st.slider("Batch Size", 1, 100, 8, 1, key="batch_size_slider")
+        password = st.text_input("Enter Training Password", placeholder="Enter password", type="password")
+        custom_text = st.text_area("Custom Text (optional)", placeholder="Enter custom text for training...", height=100)
+        dataset_file = st.file_uploader("Upload Dataset", type=[".parquet", ".csv", ".json", ".txt"])
+        if st.button("Train Model"):
+            train_status = verify_and_train_combined(train_model_selector, train_method, epochs, batch_size, password, custom_text)
+            st.text_area("Training Status", value=train_status, height=100, disabled=True)
 
     # Code Generator
     elif option == "Code Generator":
@@ -159,6 +174,7 @@ try:
         - [Text Generator](#text-generator)
         - [Multiverse Story Generator](#multiverse-story-generator)
         - [Interactive Story Writing](#interactive-story-writing)
+        - [Training](#training)
         - [Code Generator](#code-generator)
         - [Story World Builder](#story-world-builder)
         - [Chatbot](#chatbot)
@@ -189,6 +205,19 @@ try:
             - **Input Text**: Your part of the story to continue.
             - **Selected Model**: The model to use for generating the next part of the story.
             - **Max Length**: The maximum length of the generated story continuation.
+    
+        ### Training
+        - **Description**: Train a model using custom text, database, or a dataset file.
+        - **Parameters**:
+            - **Selected Model**: The model to train.
+            - **Training Method**: Choose between "Custom Text", "Database", "Dataset File", or "Hugging Face Dataset".
+            - **Epochs**: The number of times the model will iterate over the training data.
+            - **Batch Size**: The number of samples processed before the model is updated.
+            - **Password**: A password to authorize the training process.
+            - **Custom Text**: Optional text to use for training if "Custom Text" is selected.
+            - **Dataset File**: Upload a dataset file if "Dataset File" is selected.
+            - **Dataset Name**: The name of the Hugging Face dataset if "Hugging Face Dataset" is selected.
+            - **Split Name**: The dataset split (e.g., train, test) to use for training.
     
         ### Code Generator
         - **Description**: Generate code based on a given prompt.
