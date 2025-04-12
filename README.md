@@ -53,7 +53,7 @@ sudo apt install python3.8
 ### **کلون کردن**
 ابتدا مخزن پروژه رو کلون کنید
 ```bash
-git clone https://github.com/ali0discord/gpt-tools.git
+git clone https://github.com/RaitonRed/gpt-tools.git
 cd gpt-tools
 ```
 ---
