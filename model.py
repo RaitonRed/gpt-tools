@@ -173,16 +173,19 @@ def load_model_lazy(model_name):
     """
     if not isinstance(model_name, str):
         raise ValueError(f"Model name must be a string, not {type(model_name)}")
-    if model_name not in model_dict:
-        raise ValueError(f"Model {model_name} not found!")
     
+    # Get model info before checking path
+    model_info = model_dict.get(model_name)
+    if not model_info:
+        raise ValueError(f"Model {model_name} not found!")
+
+    # Check if model exists and download if needed    
     if not os.path.exists(model_info["path"]):
         try:
-            download_model(model_name, model_info)  # فراخوانی تابع دانلود
+            download_model(model_name, model_info)
         except Exception as e:
             raise RuntimeError(f"Auto-download failed: {str(e)}")
 
-    model_info = model_dict[model_name]
     print(f"Loading model: {model_name}")
 
     if model_info.get("use_pipeline", False):

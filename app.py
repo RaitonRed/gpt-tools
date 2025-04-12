@@ -4,20 +4,18 @@ from functions import *
 from functions import _generate_code
 import nest_asyncio
 import asyncio
-from database import conn
 
 # Supported models
 models_options_general = ['GPT2', 'GPT2-medium', 'GPT2-large', 'GPT2-medium-persian', 'GPT-Neo-125M', 'GPT2-persian']
 models_options_entertainment = ['GPT2', 'GPT2-medium', 'GPT2-large', 'GPT-Neo-125M']
 models_options_story = ['GPT2', 'GPT2-medium', 'GPT2-large', 'GPT-Neo-125M']
 models_options_codegen = ['codegen-350M-mono', 'codegen-350M-multi']
-models_options_chatbot = ['dialoGPT', 'dialoGPT-medium', 'dialoGPT-large', 'Blenderbot-400']
+models_options_chatbot = ['dialoGPT', 'dialoGPT-medium', 'dialoGPT-large', 'Blenderbot-400M']
 models_options_summarization = ['Bart-large-CNN', 'bert-summary']
 models_options_translation = ['T5-small']
 translation_modes = ['English-French', 'French-English', 'Romanian-German', 'German-Romanian', 'English-German']
 
 nest_asyncio.apply()
-
 
 async def generate_and_display_entertainment(c_topic, c_type, c_selected_model, c_max_length):
     result = await generate_entertainment_content(c_topic, c_type, c_selected_model, c_max_length)
@@ -110,7 +108,7 @@ try:
         selected_model = st.radio("Select Model", models_options_chatbot, index=0)
         input_text = st.text_area("Your Message", placeholder="Type your message here...", height=100)
         if st.button("Send"):
-            chat_output, chat_id, emotion_output = chatbot_response_with_emotion(username, input_text, selected_model, chat_id)
+            chat_output, chat_id = asyncio.run(chatbot_response_with_emotion(username, input_text, selected_model, chat_id))
             st.text_area("Chat History", value=chat_output, height=300, disabled=True)
         if st.button("Reset Chat"):
             reset_chat(username)
@@ -163,7 +161,6 @@ try:
         - [Text Generator](#text-generator)
         - [Multiverse Story Generator](#multiverse-story-generator)
         - [Interactive Story Writing](#interactive-story-writing)
-        - [Training](#training)
         - [Code Generator](#code-generator)
         - [Story World Builder](#story-world-builder)
         - [Chatbot](#chatbot)
@@ -194,19 +191,6 @@ try:
             - **Input Text**: Your part of the story to continue.
             - **Selected Model**: The model to use for generating the next part of the story.
             - **Max Length**: The maximum length of the generated story continuation.
-    
-        ### Training
-        - **Description**: Train a model using custom text, database, or a dataset file.
-        - **Parameters**:
-            - **Selected Model**: The model to train.
-            - **Training Method**: Choose between "Custom Text", "Database", "Dataset File", or "Hugging Face Dataset".
-            - **Epochs**: The number of times the model will iterate over the training data.
-            - **Batch Size**: The number of samples processed before the model is updated.
-            - **Password**: A password to authorize the training process.
-            - **Custom Text**: Optional text to use for training if "Custom Text" is selected.
-            - **Dataset File**: Upload a dataset file if "Dataset File" is selected.
-            - **Dataset Name**: The name of the Hugging Face dataset if "Hugging Face Dataset" is selected.
-            - **Split Name**: The dataset split (e.g., train, test) to use for training.
     
         ### Code Generator
         - **Description**: Generate code based on a given prompt.
@@ -284,5 +268,4 @@ try:
 except KeyboardInterrupt:
     print("\nKeyboard Interruption. Shutting down application")
     print("Closing Database")
-    conn.close()
     sys.exit(0)

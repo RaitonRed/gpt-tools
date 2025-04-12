@@ -166,3 +166,27 @@ def generate_poem(model_data, input_text, max_new_token, temperature=1.0, top_p=
     output = tokenizer.decode(sample_outputs[0], skip_special_tokens=True)
 
     return output
+
+def generate_chatbot(model_data, input_text, max_new_token):
+    model = model_data['model']
+    tokenizer = model_data['tokenizer']
+    
+    input_ids = tokenizer.encode(input_text, return_tensors='pt')
+    
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
+
+    attention_mask = torch.ones(input_ids.shape, device=input_ids.device)
+
+    sample_outputs = model.generate(
+        input_ids,
+        do_sample=True,  # Enable sampling to allow multiple return sequences
+        max_length=max_new_token,
+        attention_mask=attention_mask,
+        repetition_penalty=1.2,
+        num_return_sequences=1,  # Ensure only one sequence is returned
+    )
+
+    output = tokenizer.decode(sample_outputs[0], skip_special_tokens=True)
+
+    return output

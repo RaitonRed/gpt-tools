@@ -23,6 +23,17 @@ def _generate_code(code_prompt, max_tokens, selected_model):
     generated_code = generate_code(model_data, code_prompt, max_tokens)
     return generated_code
 
+async def generate_response(input_text, selected_model, max_new_token):
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    model_data = await loop.run_in_executor(executor, load_model_lazy, selected_model)
+    generated_text = await loop.run_in_executor(executor, generate_chatbot, model_data, input_text, max_new_token)
+    await loop.run_in_executor(executor, insert_into_db, input_text, selected_model)
+    return generated_text
+
 async def generate(input_text, selected_model, max_new_token):
     if not input_text.strip():
         return "Error: Input text cannot be empty."
@@ -79,7 +90,7 @@ async def generate_multiverse(input_text, selected_model, max_new_tokens, num_wo
             world_intro += "In this world, time splits into different periods!"
         elif i == 2:
             world_intro += "This world faces a strange physical anomaly that changes everything!"
-        worlds.append(await asyncio.run(generate(world_intro, selected_model, max_new_tokens)))
+        worlds.append(await generate(world_intro, selected_model, max_new_tokens))
     return "\n\n".join(worlds)
 
 def limit_chat_history(chat_history, max_turns=6):
@@ -101,7 +112,7 @@ def chatbot_response(username, input_text, selected_model, chat_id=None):
     else:
         prompt = f"User: {input_text}\nAI:"
     max_new_token = 250
-    full_response = asyncio.run(generate(prompt, selected_model, max_new_token))
+    full_response = asyncio.run(generate_response(prompt, selected_model, max_new_token))
     ai_response = full_response.split("AI:")[-1].strip()
     insert_chat(chat_id, username, input_text, ai_response)
     updated_history = chat_history + f"\nUser: {input_text}\nAI: {ai_response}"
@@ -135,23 +146,20 @@ def emotion_label(index):
     emotions = ["anger", "joy", "sadness", "fear", "love", "surprise"]
     return emotions[index]
 
-def chatbot_response_with_emotion(username, input_text, selected_model, chat_id=None):
+async def chatbot_response_with_emotion(username, input_text, selected_model, chat_id=None):
     if not username.strip():
         return "Error: Please enter a username.", "", str(uuid.uuid4())
     if not chat_id or chat_id.strip() == "":
         chat_id = str(uuid.uuid4())
-    model_data = load_model_lazy(selected_model)
-    emotion, confidence = analyze_emotion(input_text)
-    user_emotion = emotion
     previous_chats = fetch_chats_by_id(chat_id)
     chat_history = "\n".join([f"User: {msg}\nAI: {resp}" for msg, resp in previous_chats])
     if chat_history:
         chat_history = limit_chat_history(chat_history, max_turns=6)
-        prompt = f"[Emotion: {user_emotion}]\n{chat_history}\nUser: {input_text}\nAI:"
+        prompt = f"{chat_history}\nUser: {input_text}\nAI:"
     else:
-        prompt = f"[Emotion: {user_emotion}]\nUser: {input_text}\nAI:"
+        prompt = f"User: {input_text}\nAI:"
     max_new_token = 250
-    full_response = generate_text(model_data, prompt, max_new_token)
+    full_response = await generate_response(prompt, selected_model, max_new_token)  # Add await here
     ai_response = full_response.split("AI:")[-1].strip()
     insert_chat(chat_id, username, input_text, ai_response)
     updated_history = chat_history + f"\nUser: {input_text}\nAI: {ai_response}"
