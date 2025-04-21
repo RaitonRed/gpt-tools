@@ -217,3 +217,31 @@ async def generate_entertainment_content(topic, content_type, model, max_length=
 def signal_handler(_, __):
     print("\nKeyboard Interruption. Shutting down application")
     sys.exit(0)
+
+async def Assistant(question: str) -> str:
+    if not question.strip():
+        return "Error: Input text cannot be empty."
+
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+    selected_model = "DeepSeek R1"
+    model_data = await loop.run_in_executor(executor, load_model_lazy, selected_model)
+    model = model_data["model"]
+    tokenizer = model_data["tokenizer"]
+    prompt = f"User: {question}\nAssistant:"
+    inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
+    with torch.no_grad():
+        output = model.generate(
+            **inputs,
+            #max_new_tokens=200,
+            do_sample=True,
+            top_p=0.95,
+            temperature=0.7,
+            pad_token_id=tokenizer.eos_token_id
+        )
+    response = tokenizer.decode(output[0], skip_special_tokens=True)
+    return response.split("Assistant:")[-1].strip()

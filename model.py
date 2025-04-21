@@ -5,7 +5,18 @@ import time
 import threading
 from download import download_model
 from cachetools import cached, LRUCache
-from transformers import AutoModelForCausalLM, AutoTokenizer, GPT2LMHeadModel, GPT2Tokenizer, pipeline, AutoModelForSequenceClassification, AutoModelForSeq2SeqLM, T5Tokenizer, T5ForConditionalGeneration, TFGPT2LMHeadModel
+from transformers import (
+    AutoModelForCausalLM, 
+    AutoTokenizer, 
+    GPT2LMHeadModel, 
+    GPT2Tokenizer, 
+    pipeline, 
+    AutoModelForSequenceClassification, 
+    AutoModelForSeq2SeqLM, 
+    T5Tokenizer, 
+    T5ForConditionalGeneration, 
+    TFGPT2LMHeadModel
+    )
 
 # Dictionary of models and their paths
 model_dict = {
@@ -160,7 +171,16 @@ model_dict = {
         "tokenizer": AutoTokenizer, 
         "use_pipeline": False, 
         "legacy": False
-        }
+        },
+
+    "DeepSeek R1": {
+        "path": "./models/DeepSeek R1",
+        "hf_path": "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B",
+        "library": AutoModelForCausalLM,
+        "tokenizer": AutoTokenizer,
+        "use_pipeline": False,
+        "legacy": False,
+    }
 }
 
 # Create an LRU cache for models with a maximum size of 3
@@ -191,6 +211,15 @@ def load_model_lazy(model_name):
     if model_info.get("use_pipeline", False):
         if model_name == "bert-emotion":
             model_pipeline = pipeline("text-classification", model=model_info["path"], truncation=True)
+        elif model_name == "DeepSeek R1":
+            tokenizer = AutoTokenizer.from_pretrained(model_info["path"], trust_remote_code=True)
+            model = AutoModelForCausalLM.from_pretrained(
+                model_info["path"],
+                torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
+                device_map="auto",
+                trust_remote_code=True
+            )
+            model.eval()
         else:
             print(f"Using pipeline for model {model_name}")
             model_pipeline = pipeline(

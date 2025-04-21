@@ -22,3 +22,5 @@ aiosqlite
 cachetools
 pydantic
 nest_asyncio
+ipython
+openai
